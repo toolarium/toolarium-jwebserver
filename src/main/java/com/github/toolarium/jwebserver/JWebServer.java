@@ -13,15 +13,13 @@ import com.github.toolarium.jwebserver.handler.resource.ResourceHandler;
 import com.github.toolarium.jwebserver.logger.access.AccessLogHttpHandler;
 import com.github.toolarium.jwebserver.logger.access.VerboseLevel;
 import com.github.toolarium.jwebserver.logger.ansi.ColoredStackTraceWriter;
-
-import org.fusesource.jansi.AnsiConsole;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.Undertow.ListenerInfo;
 import io.undertow.server.RoutingHandler;
+import org.fusesource.jansi.AnsiConsole;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Help;
@@ -148,7 +146,7 @@ public class JWebServer implements Runnable {
 
             // create routing
             RoutingHandler routingHandler = Handlers.routing();
-           // TODO: routingHandler.setFallbackHandler(RoutingHandlers::notFoundHandler);
+            // TODO: routingHandler.setFallbackHandler(RoutingHandlers::notFoundHandler);
             
             // add routes
             HealthHttpHandler.addHandler(configuration, routingHandler);

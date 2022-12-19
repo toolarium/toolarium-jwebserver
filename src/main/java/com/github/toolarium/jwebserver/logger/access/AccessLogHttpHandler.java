@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
  * @author patrick
  */
 public final class AccessLogHttpHandler {
-    private static final String ACCESSLOG_APPENDER_NAME = "ACCESSLOG_FILE";
+    //private static final String ACCESSLOG_APPENDER_NAME = "ACCESSLOG_FILE";
     
     /**
      * Constructor for AccessLogHttpHandler
