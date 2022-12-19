@@ -1,0 +1,57 @@
+/*
+ * build.gradle
+ *
+ * Copyright by toolarium, all rights reserved.
+ */
+plugins {
+  id 'com.github.johnrengelman.shadow' version '7.1.2'
+}
+
+apply from: "https://raw.githubusercontent.com/toolarium/common-gradle-build/master/gradle/common.gradle"
+
+
+/***************************************************************************************
+ * define the main class name
+ ***************************************************************************************/
+mainClassName = "com.github.toolarium.jwebserver.JWebServer"
+
+// Minimizing an shadow JAR
+shadowJar {
+  minimize {
+      exclude(dependency('org.fusesource.jansi:.*:.*'))
+      exclude(dependency('io.undertow:.*:.*'))
+      exclude(dependency('ch.qos.logback:.*:.*'))
+  }
+}
+
+compileJava {
+    options.compilerArgs += ["-Aproject=${project.group}/${project.name}"]
+}
+
+/****************************************************************************************
+ * Define project dependencies
+ ****************************************************************************************/
+dependencies {
+    // see https://docs.gradle.org/current/userguide/java_library_plugin.html
+
+    // logging
+    implementation 'org.slf4j:slf4j-api:1.7.30'
+    implementation 'ch.qos.logback:logback-classic:1.2.3'
+
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.14.1'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.14.1'
+
+
+    // CLI
+    // https://mvnrepository.com/artifact/org.fusesource.jansi/jansi
+    implementation 'org.fusesource.jansi:jansi:2.4.0'
+
+    implementation 'info.picocli:picocli:4.7.0'
+    annotationProcessor 'info.picocli:picocli-codegen:4.7.0'
+
+    // undertow web server
+    implementation 'io.undertow:undertow-core:2.3.0.Final'
+
+    // test
+    testImplementation 'io.rest-assured:rest-assured:5.3.0'
+}
