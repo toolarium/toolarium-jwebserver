@@ -56,9 +56,11 @@
     <logger name="com.github.toolarium.jwebserver" level="INFO"/>
 
     <!-- write access log to the specific appender  -->
+    <!-- 
     <logger name="com.github.toolarium.jwebserver.accesslog" additivity="false">
         <appender-ref ref="ACCESSLOG_FILE"/>
     </logger>
+     -->
     
     <root level="WARN">
         <appender-ref ref="CONSOLE"/>
