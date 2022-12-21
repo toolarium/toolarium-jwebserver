@@ -5,7 +5,7 @@
    Copyright by toolarium, all rights reserved.
 -->
 <configuration>
-    <property name="LOG_ROOT" value="build" />
+    <property name="LOG_ROOT" value="logs" />
     <property name="LOG_FILE_NAME" value="toolarium-jwebserver" />
 
     <!-- colored console appender -->
@@ -18,34 +18,38 @@
     </appender>
 
     <!-- file appender -->
+    <!-- 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_ROOT}/${LOG_FILE_NAME}.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <fileNamePattern>${LOG_ROOT}/${LOG_FILE_NAME}-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>          
-            <maxHistory>30</maxHistory>        <!-- 30 days to keep -->          
-            <maxFileSize>500MB</maxFileSize>   <!-- 500 MB max size, in case its bigger, it will be split by an additional index -->    
-            <totalSizeCap>100GB</totalSizeCap> <!-- total size of all archive files, if total size > 100GB, it will delete old archived file -->
+            <maxHistory>30</maxHistory>         30 days to keep           
+            <maxFileSize>500MB</maxFileSize>    500 MB max size, in case its bigger, it will be split by an additional index     
+            <totalSizeCap>100GB</totalSizeCap>  total size of all archive files, if total size > 100GB, it will delete old archived file 
         </rollingPolicy>
         <encoder>
             <pattern>%-30(%d{ISO8601} - %1.-1level - %-6.6t{5}) - %-100.100(%logger#%M:%L){99} | %msg%n</pattern>
         </encoder>
     </appender>
-    
+     -->
+     
     <!-- access log appender -->
+    <!-- 
     <appender name="ACCESSLOG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_ROOT}/${LOG_FILE_NAME}-access.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <fileNamePattern>${LOG_ROOT}/${LOG_FILE_NAME}-access-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-            <maxHistory>30</maxHistory>        <!-- 30 days to keep -->          
-            <maxFileSize>500MB</maxFileSize>   <!-- 500 MB max size, in case its bigger, it will be split by an additional index -->    
-            <totalSizeCap>100GB</totalSizeCap> <!-- total size of all archive files, if total size > 100GB, it will delete old archived file -->
+            <maxHistory>30</maxHistory>        30 days to keep
+            <maxFileSize>500MB</maxFileSize>   500 MB max size, in case its bigger, it will be split by an additional index
+            <totalSizeCap>100GB</totalSizeCap> total size of all archive files, if total size > 100GB, it will delete old archived file
         </rollingPolicy>
         <encoder>
             <charset>UTF-8</charset>        
             <pattern>%msg%n</pattern>
         </encoder>
     </appender>
- 
+    -->
+    
     <logger name="ch" level="WARN"/>
     <logger name="org" level="WARN"/>
     <logger name="com.github" level="WARN"/>
