@@ -5,24 +5,22 @@
  */
 
 package com.github.toolarium.jwebserver;
-
 import com.github.toolarium.jwebserver.config.IWebServerConfiguration;
 import com.github.toolarium.jwebserver.config.WebServerConfiguration;
 import com.github.toolarium.jwebserver.handler.health.HealthHttpHandler;
 import com.github.toolarium.jwebserver.handler.resource.ResourceHandler;
+import com.github.toolarium.jwebserver.logger.LifecycleLogger;
+import com.github.toolarium.jwebserver.logger.VerboseLevel;
 import com.github.toolarium.jwebserver.logger.access.AccessLogHttpHandler;
-import com.github.toolarium.jwebserver.logger.access.VerboseLevel;
-import com.github.toolarium.jwebserver.logger.ansi.ColoredStackTraceWriter;
+import com.github.toolarium.jwebserver.logger.logback.LogbackUtil;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
-import io.undertow.Undertow.ListenerInfo;
 import io.undertow.server.RoutingHandler;
 import org.fusesource.jansi.AnsiConsole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Help;
 import picocli.CommandLine.Help.ColorScheme;
 import picocli.CommandLine.Option;
 
@@ -33,12 +31,9 @@ import picocli.CommandLine.Option;
  */
 @Command(name = "jwebserver", mixinStandardHelpOptions = true, version = "jwebserver v" + Version.VERSION, description = "Small file server.")
 public class JWebServer implements Runnable {
-    private static final String APP = "jwebserver v" + Version.VERSION;
-    private static final String NL = "\n";
-    private static final String LINE = "----------------------------------------------------------------------------------------";
     private static final Logger LOG = LoggerFactory.getLogger(JWebServer.class);
     
-    @Option(names = { "-b", "--bind" }, paramLabel = "address", description = "The bind address, by default localhost.")
+    @Option(names = { "-b", "--bind" }, paramLabel = "address", description = "The bind address, by default 0.0.0.0.")
     private String hostname;
     @Option(names = { "-p", "--port" }, paramLabel = "port", description = "The port, by default 8080.")
     private Integer port;
@@ -52,24 +47,40 @@ public class JWebServer implements Runnable {
     private String healthPath;    
     @Option(names = { "--basicauth" }, paramLabel = "authentication", description = "The basic authentication: user:password, by default disabled.")
     private String basicAuth;
+    @Option(names = { "--ioThreads" }, paramLabel = "ioThreads", description = "The number of I/O threads.")
+    private Integer ioThreads;
+    @Option(names = { "--workerThreads" }, paramLabel = "workerThreads", description = "The number of worker threads.")
+    private Integer workerThreads;
+    @Option(names = { "--welcomeFiles" }, paramLabel = "welcomeFiles", description = "The welcome files, by default index.html, index.htm.")
+    private String welcomeFiles;
+    @Option(names = { "--name" }, paramLabel = "webserverName", defaultValue = "", description = "The webserver name.")
+    private String webserverName;    
     @Option(names = { "--verbose" }, paramLabel = "verboseLevel", defaultValue = "INFO", description = "Specify the verbose level: (${COMPLETION-CANDIDATES}), by default INFO.")
     private VerboseLevel verboseLevel;
     @Option(names = { "-v", "--version" }, versionHelp = true, description = "Display version info")
     private boolean versionInfoRequested;
+    @Option(names = { "--accessLogFormat" }, paramLabel = "accessLogFormat", description = "Defines the access log format, default: combined.")
+    private String accessLogFormatString;
+    @Option(names = { "--accessLogFilePattern" }, paramLabel = "accessLogFilePattern", description = "Defines the access log file pattern, default: logs/access-%%d{yyyy-MM-dd}.log.gz.")
+    private String accessLogFilePattern;
     @Option(names = {"-h", "--help" }, usageHelp = true, description = "Display this help message")
     private boolean usageHelpRequested;
 
-    // define the color schema
-    private ColorScheme colorSchema = Help.defaultColorScheme(Help.Ansi.AUTO);
     private WebServerConfiguration configuration;
-    private Undertow server;
+    private LifecycleLogger lifecycleLogger;
+    private transient Undertow server;
+    private boolean hasError;
 
     
+
     /**
      * Constructor for JWebServer
      */
     public JWebServer() {
+        configuration = null;
+        lifecycleLogger = new LifecycleLogger();
         server = null;
+        hasError = false;
     }
 
 
@@ -82,11 +93,14 @@ public class JWebServer implements Runnable {
         if (configuration == null) {
             setConfiguration(new WebServerConfiguration()
                     .readProperties()
+                    .setWebserverName(webserverName)
                     .setHostname(hostname).setPort(port)
                     .setDirectory(directory).setDirectoryListingEnabled(directoryListingEnabled).setResourcePath(resourcePath)
                     .setBasicAuthentication(basicAuth)
                     .setHealthPath(healthPath)
-                    .setVerboseLevel(verboseLevel));
+                    .setIoThreads(ioThreads).setWorkerThreads(workerThreads)
+                    .setWelcomeFiles(welcomeFiles)
+                    .setVerboseLevel(verboseLevel).setAccessLogFilePattern(accessLogFilePattern).setAccessLogFormatString(accessLogFormatString));
         }
         
         return configuration;
@@ -105,10 +119,11 @@ public class JWebServer implements Runnable {
     
     /**
      * Get the color schema
+     * 
      * @return the color schema
      */
     private ColorScheme getColorSchmea() {
-        return colorSchema;
+        return lifecycleLogger.getColorScheme();
     }
 
 
@@ -127,20 +142,74 @@ public class JWebServer implements Runnable {
         // parse command line and run
         CommandLine commandLine = new CommandLine(jwebServer).setColorScheme(jwebServer.getColorSchmea());        
         int exitCode = commandLine.execute(args);
-        LOG.debug("Ended with code:" + exitCode);
+        if (jwebServer.hasError()) {
+            LOG.debug("Executed Ended with code:" + exitCode);
+        } else {
+            LOG.debug("Successful started.");
+        }
         
         // try to uninstall jansi
         AnsiConsole.systemUninstall();
     }
 
+    
+    /**
+     * Stop the server
+     */
+    public synchronized void start() {
+        if (!isRunning()) {
+            run();
+        } else {
+            LOG.warn("Server is already running!");
+        }
+    }
 
+    
+    /**
+     * Stop the server
+     */
+    public synchronized void stop() {
+        if (isRunning()) {
+            server.stop();
+            server = null;
+        } else {
+            LOG.warn("Server is already stopped.");
+        }
+    }
+
+
+    /**
+     * Check if the server is running
+     *
+     * @return true if it is running
+     */
+    public boolean isRunning() {
+        return (server != null);
+    }
+
+    
+    /**
+     * Check if there are any errors
+     *
+     * @return true if there are any errors
+     */
+    public boolean hasError() {
+        return hasError;
+    }
+
+    
     /**
      * @see java.lang.Runnable#run()
      */
     @Override
-    public void run() {
+    public synchronized void run() {
+        
+        if (verboseLevel != null && VerboseLevel.VERBOSE.equals(verboseLevel)) {
+            LogbackUtil.getInstance().enableVerbose();
+        }
+        
         IWebServerConfiguration configuration = getConfiguration();
-
+        
         try {
             LOG.info("Start server [" + configuration.getHostname() + "] on port [" + configuration.getPort() + "]...");
 
@@ -154,105 +223,20 @@ public class JWebServer implements Runnable {
             
             // create simple server
             server = Undertow.builder()
-                    //.setIoThreads(configuration.getIoThreads())
-                    //.setWorkerThreads(configuration.getWorkerThreads())
+                    .setIoThreads(configuration.getIoThreads()).setWorkerThreads(configuration.getWorkerThreads())
                     .addHttpListener(configuration.getPort(), configuration.getHostname(), AccessLogHttpHandler.addHandler(configuration, routingHandler))
                    .build();
             server.start();
             
             if (!VerboseLevel.NONE.equals(verboseLevel)) {
-                System.out.println(getServerMessage(server, configuration)); // CHECKSTYLE IGNORE THIS LINE
+                lifecycleLogger.printServerStartup(configuration, server.getListenerInfo());
             }
         } catch (RuntimeException ex) {
-            LOG.warn("Could not start server [" + hostname + "] on port [" + port + "]\n" + ColoredStackTraceWriter.throwableToColorString(ex, colorSchema));
-        }
-    }
-    
-    
-    /**
-     * Stop the server
-     */
-    public void stop() {
-        server.stop();
-    }
-    
-    
-    /**
-     * Get server message
-     *
-     * @param server the server
-     * @param configuration the configuration
-     * @return the server message
-     */
-    private String getServerMessage(Undertow server, IWebServerConfiguration configuration) {
-        String path = configuration.getDirectory();
-        if (path.equals(".")) {
-            path = "";
-        }
-
-        if (!path.isEmpty() && !path.startsWith("/")) { 
-            path = "/" + path;
-        }
-        
-        if (!path.endsWith("/")) { 
-            path += "/";
-        }
-
-        if (configuration.isLocalDirectory()) {
-            path = System.getProperty("user.dir").replace('\\', '/') + path;
-        }
-
-        String pathType = "{PATH}:";
-        if (configuration.readFromClasspath()) {
-            pathType = " {CLASSPATH}:";
-        }
-
-        path = colorSchema.commandText(configuration.getResourcePath()) + " -> " + pathType + colorSchema.commandText(path);
-        
-        
-        StringBuilder listenerInfoMessage = new StringBuilder(); 
-        for (ListenerInfo listenerInfo : server.getListenerInfo()) {
-            if (listenerInfo.getSslContext() == null) {
-                listenerInfoMessage.append(listenerInfo.getProtcol());
-            } else {
-                listenerInfoMessage.append(listenerInfo.getSslContext().getProtocol());
+            hasError = true;
+            if (!VerboseLevel.NONE.equals(verboseLevel)) {
+                lifecycleLogger.printServerStartup(configuration, null);
             }
-            listenerInfoMessage.append(":/");
-            listenerInfoMessage.append(listenerInfo.getAddress());
-            listenerInfoMessage.append(NL);
+            LOG.warn("Could not start server [" + configuration.getHostname() + "] on port [" + configuration.getPort() + "]\n" + lifecycleLogger.preapreThrowable(ex));
         }
-
-        String jwebserverMessage = "  " + colorSchema.parameterText(APP) /*Ansi.AUTO.string("@|bold,blue " + APP + "!|@")*/ + NL
-                + prepareHeader("Listener") + colorSchema.commandText(listenerInfoMessage.toString())
-                + prepareHeader("Resource") + path + NL
-                + prepareHeader("Listing") + configuration.isDirectoryListingEnabled() + NL;
-
-        if (configuration.hasBasicAuthentication()) {
-            jwebserverMessage += prepareHeader("Basic Auth") + configuration.hasBasicAuthentication() + NL;
-        }
-
-        if (configuration.hasHealthCheck()) {
-            jwebserverMessage += prepareHeader("Health") + configuration.getHealthPath() + NL;
-        }
-        
-        final String headerLine = LINE + NL; 
-        return NL + headerLine + jwebserverMessage + headerLine;
-    }
-
-
-    /**
-     * Prepare header
-     *
-     * @param tag the tag
-     * @return the message
-     */
-    private String prepareHeader(String tag) {
-        StringBuilder msg = new StringBuilder(); 
-        msg.append("  > ");
-        msg.append(tag);
-        for (int i = tag.length(); i < 11; i++) {
-            msg.append(' ');
-        }
-        return msg.toString();
     }
 }

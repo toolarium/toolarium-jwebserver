@@ -7,7 +7,7 @@ package com.github.toolarium.jwebserver.config;
 
 
 
-import com.github.toolarium.jwebserver.logger.access.VerboseLevel;
+import com.github.toolarium.jwebserver.logger.VerboseLevel;
 
 /**
  * Defines the webserver configuration interface
@@ -15,6 +15,13 @@ import com.github.toolarium.jwebserver.logger.access.VerboseLevel;
  * @author patrick
  */
 public interface IWebServerConfiguration {
+    /**
+     * Get the webserver name
+     *
+     * @return the webserver name
+     */
+    String getWebserverName();
+
     /**
      * Get the hostname
      *
@@ -122,7 +129,18 @@ public interface IWebServerConfiguration {
      * @return the accesslog format string
      */
     String getAccessLogFormatString();
+
     
+    /**
+     * The access log file pattern, e.g. "access-%d{yyyy-MM-dd}.log.gz"
+     * <p>
+     * For more information, please refer to the online manual at
+     * http://logback.qos.ch/manual/appenders.html#TimeBasedRollingPolicy</p>
+     *
+     * @return the access log file pattern
+     */
+    String getAccessLogFilePattern();
+
     
     /**
      * Define if the resource has basic authentication  
@@ -162,4 +180,28 @@ public interface IWebServerConfiguration {
      * @return the resource path
      */
     String getResourcePath();
+    
+
+    /**
+     * Get the number of I/O threads
+     *
+     * @return the number of I/O threads
+     */
+    int getIoThreads();
+    
+    
+    /**
+     * Get the number of working threads 
+     *
+     * @return the number of working threads
+     */
+    int getWorkerThreads();
+
+    
+    /**
+     * Set the welcome files
+     *
+     * @return the welcome files
+     */
+    String[] getWelcomeFiles();
 }

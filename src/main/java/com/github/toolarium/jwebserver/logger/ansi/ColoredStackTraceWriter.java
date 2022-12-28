@@ -5,7 +5,6 @@
  */
 package com.github.toolarium.jwebserver.logger.ansi;
 
-import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
 import picocli.CommandLine.Help;
@@ -44,22 +43,6 @@ public class ColoredStackTraceWriter extends StringWriter {
         }
         
         super.write(colorScheme.apply(str.substring(off, len), styles).toString());
-    }
-
-
-    /**
-     * Convert a {@code Throwable} to a {@code String} , with message and stack traces extracted and colored according
-     * to {@code ColorScheme}.
-     * 
-     * @param t                   the {@code Throwable} to be converted
-     * @param existingColorScheme the {@code ColorScheme} to use
-     * @return converted and colored {@code String}
-     */
-    public static String throwableToColorString(Throwable t, Help.ColorScheme existingColorScheme) {
-        Help.ColorScheme colorScheme = new Help.ColorScheme.Builder(existingColorScheme).applySystemProperties().build();
-        StringWriter stringWriter = new ColoredStackTraceWriter(colorScheme);
-        t.printStackTrace(new PrintWriter(stringWriter)); // CHECKSTYLE IGNORE THIS LINE
-        return stringWriter.toString();
     }
 }
 

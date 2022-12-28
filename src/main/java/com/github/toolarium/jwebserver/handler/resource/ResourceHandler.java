@@ -9,11 +9,10 @@ import com.github.toolarium.jwebserver.config.IWebServerConfiguration;
 import com.github.toolarium.jwebserver.handler.auth.BasicAuthenticationHttpHandler;
 import io.undertow.Handlers;
 import io.undertow.server.RoutingHandler;
-import io.undertow.server.handlers.resource.ClassPathResourceManager;
+import io.undertow.server.handlers.RedirectHandler;
 import io.undertow.server.handlers.resource.PathResourceManager;
 import io.undertow.util.Methods;
 import java.nio.file.Paths;
-
 
 
 /**
@@ -22,6 +21,10 @@ import java.nio.file.Paths;
 * @author patrick
 */
 public final class ResourceHandler {
+    /** SLASH */
+    public static final String SLASH = "/";
+
+
     /**
      * Constructor for ResourceHandler
      */
@@ -40,12 +43,13 @@ public final class ResourceHandler {
     public static RoutingHandler addHandler(final IWebServerConfiguration configuration, final RoutingHandler routinrgHandler) { 
         String path = configuration.getDirectory();
         io.undertow.server.handlers.resource.ResourceHandler resourceHandler;
+                
         if (configuration.readFromClasspath()) {
             if (path == null) {
                 path = "";
             }
             
-            resourceHandler = Handlers.resource(new ClassPathResourceManager(ResourceHandler.class.getClassLoader(), path));
+            resourceHandler = Handlers.resource(new com.github.toolarium.jwebserver.handler.resource.ClassPathResourceManager(ResourceHandler.class.getClassLoader(), path));
         } else {
             if (path == null) {
                 path = ".";
@@ -54,9 +58,22 @@ public final class ResourceHandler {
             resourceHandler = Handlers.resource(new PathResourceManager(Paths.get(path), 10));
         }
 
-        resourceHandler.setDirectoryListingEnabled(configuration.isDirectoryListingEnabled());
-        routinrgHandler.add(Methods.GET, configuration.getResourcePath() + "*", BasicAuthenticationHttpHandler.addHandler(configuration, resourceHandler));
+        if (configuration.getWelcomeFiles() != null) {
+            resourceHandler.setWelcomeFiles(configuration.getWelcomeFiles());
+        }
         
+        resourceHandler.setDirectoryListingEnabled(configuration.isDirectoryListingEnabled());
+        
+        String resourcePath = configuration.getResourcePath();
+        if (resourcePath == null || resourcePath.isBlank()) {
+            resourcePath = SLASH;
+        } else if (!resourcePath.endsWith(SLASH)) {
+            resourcePath += SLASH;
+        }
+
+        //routinrgHandler.add(Methods.GET, resourcePath + "*", BasicAuthenticationHttpHandler.addHandler(configuration, new RedirectDirectoryHandler(configuration, resourceHandler)));
+        routinrgHandler.add(Methods.GET, resourcePath + "*", BasicAuthenticationHttpHandler.addHandler(configuration, resourceHandler));
+        routinrgHandler.setFallbackHandler(new RedirectHandler(resourcePath));
         return routinrgHandler;
     }
 }

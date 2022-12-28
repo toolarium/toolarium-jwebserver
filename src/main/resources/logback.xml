@@ -53,7 +53,7 @@
     <logger name="ch" level="WARN"/>
     <logger name="org" level="WARN"/>
     <logger name="com.github" level="WARN"/>
-    <logger name="com.github.toolarium.jwebserver" level="INFO"/>
+    <logger name="com.github.toolarium.jwebserver" level="WARN"/>
 
     <!-- write access log to the specific appender  -->
     <!-- 

@@ -5,7 +5,8 @@
  */
 package com.github.toolarium.jwebserver.config;
 
-import com.github.toolarium.jwebserver.logger.access.VerboseLevel;
+import com.github.toolarium.jwebserver.handler.resource.ResourceHandler;
+import com.github.toolarium.jwebserver.logger.VerboseLevel;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,10 +22,11 @@ import org.slf4j.LoggerFactory;
  * @author patrick
  */
 public class WebServerConfiguration implements IWebServerConfiguration {
-    private static final String SLASH = "/";
+    private static final String END_VALUE = "].";
     private static final String JWEBSERVER_PROPERTIES = "jwebserver.properties";
     private static final Logger LOG = LoggerFactory.getLogger(WebServerConfiguration.class);
     private static final String USER_HOME = System.getProperty("user.home");
+    private String webserverName;
     private String hostname;
     private int port;
     private String directory;
@@ -33,15 +35,21 @@ public class WebServerConfiguration implements IWebServerConfiguration {
     private boolean directoryListingEnabled;
     private VerboseLevel verboseLevel;
     private String accessLogFormatString;
+    private String accessLogFilePattern;
     private String basicAuthentication;
     private String healthPath;
     private String resourcePath;
+    private int ioThreads;
+    private int workerThreads;
+    private String[] welcomeFiles;
+    
     
     /**
      * Constructor for WebServerConfiguration
      */
     public WebServerConfiguration() {
-        this.hostname = "localhost";
+        this.webserverName = "";
+        this.hostname = "0.0.0.0";
         this.port = 8080;
         this.directory = ".";
         this.isLocalDirectory = true;
@@ -49,9 +57,13 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         this.directoryListingEnabled = false;
         this.verboseLevel = VerboseLevel.INFO;
         this.accessLogFormatString = "combined";
+        this.accessLogFilePattern = "logs/access-%d{yyyy-MM-dd}.log.gz"; // "logs/access-%d{yyyy-MM-dd}.%i.log.gz"
         this.basicAuthentication = null;
         this.healthPath = "/q/health";
-        this.resourcePath = SLASH;
+        this.resourcePath = ResourceHandler.SLASH;
+        this.ioThreads = Math.max(Runtime.getRuntime().availableProcessors(), 2);
+        this.workerThreads = ioThreads * 8;
+        this.welcomeFiles = new String[] {"index.html", "index.htm", "default.html", "default.htm"};
     }
 
 
@@ -61,6 +73,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
      * @param configuration the configuration
      */
     public WebServerConfiguration(IWebServerConfiguration configuration) {
+        this.webserverName = configuration.getWebserverName();
         this.hostname = configuration.getHostname();
         this.port = configuration.getPort();
         this.directory = configuration.getDirectory();
@@ -69,9 +82,38 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         this.directoryListingEnabled = configuration.isDirectoryListingEnabled();
         this.verboseLevel = configuration.getVerboseLevel();
         this.accessLogFormatString = configuration.getAccessLogFormatString();
+        this.accessLogFilePattern = configuration.getAccessLogFilePattern();
         this.basicAuthentication = configuration.getBasicAuthentication();
         this.healthPath = configuration.getHealthPath();
         this.resourcePath = configuration.getResourcePath();
+        this.ioThreads = configuration.getIoThreads();
+        this.workerThreads = configuration.getWorkerThreads();
+        this.welcomeFiles = configuration.getWelcomeFiles();
+    }
+
+    
+    /**
+     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getWebserverName()
+     */
+    @Override
+    public String getWebserverName() {
+        return webserverName;
+    }
+
+    
+    /**
+     * Set the webserver name
+     *
+     * @param webserverName the webserve name
+     * @return the WebServerConfiguration
+     */
+    public WebServerConfiguration setWebserverName(String webserverName) {
+        if (webserverName != null && !webserverName.isBlank()) {
+            LOG.debug("Set webserver name: [" + webserverName + "].  ");
+            this.webserverName = webserverName.trim();
+        }
+        
+        return this;
     }
 
     
@@ -117,7 +159,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
      */
     public WebServerConfiguration setPort(Integer port) {
         if (port != null) {
-            LOG.debug("Set port: [" + port + "]. ");            
+            LOG.debug("Set port: [" + port + "].  ");            
             this.port = port.intValue();
         }
         
@@ -158,7 +200,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
      * @return the WebServerConfiguration
      */
     public WebServerConfiguration setDirectory(String directory, Boolean readFromClasspath) {
-        LOG.debug("Set directory: [" + directory + "], readFromClasspath: [" + readFromClasspath + "]. ");
+        LOG.debug("Set directory: [" + directory + "], readFromClasspath: [" + readFromClasspath + END_VALUE);
         
         if (directory != null) {
             this.directory = directory.trim();
@@ -172,9 +214,11 @@ public class WebServerConfiguration implements IWebServerConfiguration {
             this.readFromClasspath = readFromClasspath.booleanValue();
         }
 
-        LOG.debug("Set isLocalDirectory: " + this.directory.startsWith(SLASH) + SLASH + this.directory.startsWith("\\") + SLASH + (this.directory.length() > 2 && this.directory.substring(1).startsWith(":")));
+        LOG.debug("Set isLocalDirectory: " + this.directory.startsWith(ResourceHandler.SLASH) + ResourceHandler.SLASH
+                + this.directory.startsWith("\\") + ResourceHandler.SLASH
+                + (this.directory.length() > 2 && this.directory.substring(1).startsWith(":")));
         this.isLocalDirectory = !(this.readFromClasspath 
-                || this.directory.startsWith(SLASH) 
+                || this.directory.startsWith(ResourceHandler.SLASH) 
                 || this.directory.startsWith("\\") 
                 || (this.directory.length() > 2 && this.directory.substring(1).startsWith(":")));
 
@@ -218,7 +262,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
      */
     public WebServerConfiguration setDirectoryListingEnabled(Boolean directoryListingEnabled) {
         if (directoryListingEnabled != null) {
-            LOG.debug("Set directoryListingEnabled: [" + directoryListingEnabled + "]. ");
+            LOG.debug("Set directoryListingEnabled: [" + directoryListingEnabled + END_VALUE);
             this.directoryListingEnabled = directoryListingEnabled.booleanValue();
         }
         
@@ -243,14 +287,14 @@ public class WebServerConfiguration implements IWebServerConfiguration {
      */
     public WebServerConfiguration setVerboseLevel(VerboseLevel verboseLevel) {
         if (verboseLevel != null) {
-            LOG.debug("Set verboseLevel: [" + verboseLevel + "]. ");
+            LOG.debug("Set verboseLevel: [" + verboseLevel + END_VALUE);
             this.verboseLevel = verboseLevel;
         }
         
         return this;
     }
 
-    
+        
     /**
      * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getAccessLogFormatString()
      */
@@ -267,9 +311,34 @@ public class WebServerConfiguration implements IWebServerConfiguration {
      * @return the WebServerConfiguration
      */
     public WebServerConfiguration setAccessLogFormatString(String accessLogFormatString) {
-        if (accessLogFormatString != null) {
-            LOG.debug("Set accessLogFormatString: [" + accessLogFormatString + "]. ");
+        if (accessLogFormatString != null && !accessLogFormatString.isBlank()) {
+            LOG.debug("Set accessLogFormatString: [" + accessLogFormatString + END_VALUE);
             this.accessLogFormatString = accessLogFormatString;
+        }
+        
+        return this;
+    }
+
+
+    /**
+     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getAccessLogFilePattern()
+     */
+    @Override
+    public String getAccessLogFilePattern() {
+        return accessLogFilePattern;
+    }
+
+    
+    /**
+     * Set the access log file pattern
+     *
+     * @param accessLogFilePattern the access log file pattern
+     * @return the WebServerConfiguration
+     */
+    public WebServerConfiguration setAccessLogFilePattern(String accessLogFilePattern) {
+        if (accessLogFilePattern != null && !accessLogFilePattern.isBlank()) {
+            LOG.debug("Set accessLogFilePattern: [" + accessLogFilePattern + END_VALUE);
+            this.accessLogFilePattern = accessLogFilePattern;
         }
         
         return this;
@@ -340,7 +409,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         if (healthPath == null || healthPath.isBlank()) {
             LOG.debug("Disable health check.");
         } else { 
-            LOG.debug("Enable health check: [" + healthPath + "].");
+            LOG.debug("Enable health check: [" + healthPath + END_VALUE);
         }
             
         this.healthPath = healthPath;
@@ -365,8 +434,101 @@ public class WebServerConfiguration implements IWebServerConfiguration {
      */
     public WebServerConfiguration setResourcePath(String resourcePath) {
         if (resourcePath != null && !resourcePath.isBlank()) {
-            LOG.debug("Set resourcePath: [" + resourcePath + "].");            
+            LOG.debug("Set resourcePath: [" + resourcePath + END_VALUE);            
             this.resourcePath = resourcePath;
+        }
+        return this;
+    }
+
+    
+    /**
+     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getIoThreads()
+     */
+    @Override
+    public int getIoThreads() {
+        return ioThreads;
+        
+    }
+
+    
+    
+    /**
+     * Set the I/O threads
+     *
+     * @param ioThreads the io threads
+     * @return the WebServerConfiguration
+     */
+    public WebServerConfiguration setIoThreads(Integer ioThreads) {
+        if (ioThreads != null && ioThreads.intValue() > 0) {
+            LOG.debug("Set ioThreads: [" + ioThreads + END_VALUE);            
+            this.ioThreads = ioThreads;
+            setWorkerThreads(ioThreads * 8);
+        }
+        return this;
+    }
+
+
+    
+    /**
+     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getWorkerThreads()
+     */
+    @Override
+    public int getWorkerThreads() {
+        return workerThreads;
+    }
+
+    
+    /**
+     * Set the worker threads
+     *
+     * @param workerThreads the worker threads
+     * @return the WebServerConfiguration
+     */
+    public WebServerConfiguration setWorkerThreads(Integer workerThreads) {
+        if (workerThreads != null && workerThreads.intValue() > 0) {
+            LOG.debug("Set workerThreads: [" + workerThreads + END_VALUE);            
+            this.workerThreads = workerThreads;
+        }
+        return this;
+    }
+
+    
+    /**
+     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getWorkerThreads()
+     */
+    @Override
+    public String[] getWelcomeFiles() {
+        return welcomeFiles;
+    }
+
+    
+    /**
+     * Set the welcome files
+     *
+     * @param welcomeFiles the welcome files
+     * @return the WebServerConfiguration
+     */
+    public WebServerConfiguration setWelcomeFiles(String welcomeFiles) {
+        if (welcomeFiles != null) {
+            setWelcomeFiles(parseWelcomeFiles(welcomeFiles));
+        }
+        return this;
+    }
+
+    
+    /**
+     * Set the welcome files
+     *
+     * @param welcomeFiles the welcome files
+     * @return the WebServerConfiguration
+     */
+    public WebServerConfiguration setWelcomeFiles(String[] welcomeFiles) {
+        if (welcomeFiles != null) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Set welcomeFiles: [" + formatWelcomeFiles(welcomeFiles) + END_VALUE);            
+            }
+            
+            this.welcomeFiles = welcomeFiles;
         }
         return this;
     }
@@ -383,6 +545,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
             return this;
         }
         
+        setWebserverName(readProperty(properties, "webserverName", webserverName, false));
         setHostname(readProperty(properties, "hostname", hostname, false));
         setPort(readProperty(properties, "port", port, false));
         setDirectory(readProperty(properties, "directory", directory, false), readProperty(properties, "readFromClasspath", readFromClasspath, false));
@@ -392,12 +555,59 @@ public class WebServerConfiguration implements IWebServerConfiguration {
             setDirectoryListingEnabled(Boolean.FALSE);
         }
 
+        setIoThreads(readProperty(properties, "ioThreads", ioThreads, false));
+        setWorkerThreads(readProperty(properties, "workerThreads", workerThreads, false));
+        setWelcomeFiles(readProperty(properties, "welcomeFiles", formatWelcomeFiles(welcomeFiles), false));
+        
         setVerboseLevel(readProperty(properties, "verboseLevel", verboseLevel, false));
         setAccessLogFormatString(readProperty(properties, "accessLogFormatString", accessLogFormatString, false));
+        setAccessLogFilePattern(readProperty(properties, "accessLogFilePattern", accessLogFilePattern, false));
+        
         setBasicAuthentication(readProperty(properties, "basicAuthentication", basicAuthentication, true));
         setHealthPath(readProperty(properties, "healthPath", healthPath, true));
         setResourcePath(readProperty(properties, "resourcePath", resourcePath, false));
         return this;
+    }
+
+    
+    /**
+     * Parse the welcome files
+     *
+     * @param welcomeFiles the welcome files
+     * @return the parsed string
+     */
+    public String[] parseWelcomeFiles(String welcomeFiles) {
+        if (welcomeFiles == null) {
+            return null;
+        }
+            
+        String[] welcomeList = welcomeFiles.split(",");
+        for (int i = 0; i < welcomeList.length; i++) {
+            welcomeList[i] = welcomeList[i].trim();
+        }
+        return welcomeList;
+    }
+
+    
+    /**
+     * Format the welcome files
+     *
+     * @param welcomeFiles the welcome files
+     * @return the formated string
+     */
+    public String formatWelcomeFiles(String[] welcomeFiles) {
+        if (welcomeFiles == null) {
+            return null;
+        }
+        
+        StringBuilder formatString = new StringBuilder();
+        for (String welcomeFile : welcomeFiles) {
+            if (!formatString.toString().isEmpty()) {
+                formatString.append(", ");
+            }
+            formatString.append(welcomeFile);
+        }
+        return formatString.toString();
     }
 
     
@@ -410,7 +620,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         Properties properties = null;
         
         try {
-            try (InputStream stream = this.getClass().getResourceAsStream(SLASH + JWEBSERVER_PROPERTIES)) {
+            try (InputStream stream = this.getClass().getResourceAsStream(ResourceHandler.SLASH + JWEBSERVER_PROPERTIES)) {
                 int countEntries = 0;
                 if (stream != null) {
                     LOG.debug("Found " + JWEBSERVER_PROPERTIES + "...");
@@ -496,7 +706,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         try {
             return Boolean.valueOf(result);
         } catch (Exception e) {
-            LOG.warn("Invalid value [" + result + "] for attribute [" + name + "], keep default value [" + defaultValue + "].");
+            LOG.warn("Invalid value [" + result + "] for attribute [" + name + "], keep default value [" + defaultValue + END_VALUE);
             return defaultValue;
         }
     }
@@ -524,7 +734,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         try {
             return Integer.valueOf(result);
         } catch (Exception e) {
-            LOG.warn("Invalid value [" + result + "] for attribute [" + name + "], keep default value [" + defaultValue + "].");
+            LOG.warn("Invalid value [" + result + "] for attribute [" + name + "], keep default value [" + defaultValue + END_VALUE);
             return defaultValue;
         }
     }
@@ -552,7 +762,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         try {
             return VerboseLevel.valueOf(result);
         } catch (Exception e) {
-            LOG.warn("Invalid value [" + result + "] for attribute [" + name + "], keep default value [" + defaultValue + "].");
+            LOG.warn("Invalid value [" + result + "] for attribute [" + name + "], keep default value [" + defaultValue + END_VALUE);
             return defaultValue;
         }
     }

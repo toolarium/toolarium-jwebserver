@@ -3,7 +3,7 @@
  *
  * Copyright by toolarium, all rights reserved.
  */
-package com.github.toolarium.jwebserver.logger.access;
+package com.github.toolarium.jwebserver.logger;
 
 
 /**
@@ -13,6 +13,7 @@ package com.github.toolarium.jwebserver.logger.access;
 public enum VerboseLevel {
     NONE,
     INFO,
-    VERBOSE,
-    VERBOSE_CONSOLE
+    ACCESS,
+    ACCESS_CONSOLE,
+    VERBOSE
 }
