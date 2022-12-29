@@ -1,0 +1,8 @@
+https://github.com/undertow-io/undertow/tree/master/core/src/main/java/io/undertow/server/handlers
+https://github.com/undertow-io/undertow/tree/master/examples/src/main/java/io/undertow/examples
+https://mikeldeltio.com/2020/09/22/undertow-building-an-enhanced-reverse-proxy/
+https://github.com/undertow-io/undertow/blob/master/core/src/main/java/io/undertow/server/handlers/MetricsHandler.java
+https://medium.com/sandwich-bytes/reverse-proxy-using-jetty-undertow-96a29bb53ca8
+https://github.com/StubbornJava/StubbornJava/blob/master/stubbornjava-common/src/main/java/com/stubbornjava/common/Metrics.java
+https://github.com/StubbornJava/StubbornJava/tree/master/stubbornjava-examples/src/main/java/com/stubbornjava/examples/undertow
+https://github.com/StubbornJava/StubbornJava/blob/master/stubbornjava-examples/src/main/java/com/stubbornjava/examples/undertow/handlebars/WebpackServer.java

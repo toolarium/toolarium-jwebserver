@@ -44,6 +44,16 @@ public class ClassPathResourceManager extends io.undertow.server.handlers.resour
                 if (resource.isDirectory()) {
                     LOG.debug("Found directory [" + resource.getPath() + "] in  [" + resource.getUrl() + "].");
                 } else {
+                    // Issue and workaround: in some cases directory are not properly detected. In this cases the length is always zero.
+                    if ((resource.getContentLength() == null || resource.getContentLength().longValue() == 0L) && !path.endsWith("/")) {
+                        LOG.debug("Check if it is a directory resource [" + resource.getPath() + "/]...");
+                        Resource  subResource = super.getResource(path + "/");
+                        if (subResource != null && subResource.isDirectory()) {
+                            LOG.debug("Found directory [" + resource.getPath() + "/] in  [" + resource.getUrl() + "].");
+                            return subResource;
+                        }
+                    }
+                    
                     LOG.debug("Found resource [" + resource.getPath() + "] in  [" + resource.getUrl() + "] " + resource.getContentLength());
                 }
             } else {
