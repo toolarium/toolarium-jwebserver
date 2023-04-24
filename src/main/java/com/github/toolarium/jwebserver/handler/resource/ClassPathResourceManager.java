@@ -60,8 +60,7 @@ public class ClassPathResourceManager extends io.undertow.server.handlers.resour
                 LOG.debug("Resource not found [" + path + "].");
             }
         }
-        
-        
+                
         return resource;
     }
 }

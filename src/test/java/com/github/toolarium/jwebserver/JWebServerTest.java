@@ -23,9 +23,9 @@ import org.junit.jupiter.api.Test;
 public class JWebServerTest {
     
     /**
-     * Test MyApplication method.
+     * Test default behaviour.
      */
-    @Test void testSomeLibraryMethod() {
+    @Test void testDefaultBehaviour() {
         WebServerConfiguration configuration = new WebServerConfiguration();
         configuration.setPort(10001);
         configuration.setWelcomeFiles("index.html, index.htm");
@@ -39,7 +39,6 @@ public class JWebServerTest {
         given().when().get("/LICENSE").then().statusCode(200);
         given().when().get("/NOTICE").then().statusCode(200);
         given().when().get("/versions").then().statusCode(403); // is a directory
-        
     }
     
     
@@ -160,9 +159,89 @@ public class JWebServerTest {
     /**
      * Test MyApplication method.
      */
-    @Test void testBasicAuth() {
+    @Test void testResourceAccessWithPrefix() {
         WebServerConfiguration configuration = new WebServerConfiguration();
         configuration.setPort(10009);
+        configuration.setIoThreads(1);
+        configuration.setBasicAuthentication(null);
+        configuration.setHealthPath(null);
+        configuration.setDirectory("src/main");
+        configuration.setResourcePath("/java");
+
+        JWebServer jwebserver = new JWebServer();
+        jwebserver.setConfiguration(configuration);
+        jwebserver.run();
+
+        assertEquals("/java", configuration.getResourcePath());
+        RestAssured.port = configuration.getPort();
+
+        given().when().get("/java").then().statusCode(403);
+        given().when().get("/java/").then().statusCode(403);
+        given().get("/java/Links.txt").then().statusCode(200);
+        given().get("java/Links.txt").then().statusCode(200);
+    }
+
+    
+    /**
+     * Test MyApplication method.
+     */
+    @Test void testResourceAccessWithPrefixAndAdaptedIndex() {
+        WebServerConfiguration configuration = new WebServerConfiguration();
+        configuration.setPort(10010);
+        configuration.setIoThreads(1);
+        configuration.setBasicAuthentication(null);
+        configuration.setHealthPath(null);
+        configuration.setDirectory("src/main");
+        configuration.setResourcePath("/java/");
+        configuration.setWelcomeFiles("index.html, index.htm, Links.txt");
+
+        JWebServer jwebserver = new JWebServer();
+        jwebserver.setConfiguration(configuration);
+        jwebserver.run();
+
+        assertEquals("/java/", configuration.getResourcePath());
+        RestAssured.port = configuration.getPort();
+
+        given().get("/java").then().statusCode(200);
+        given().get("/java/").then().statusCode(200);
+        given().get("/java/Links.txt").then().statusCode(200);
+        given().get("java/Links.txt").then().statusCode(200);
+    }
+
+    
+    /**
+     * Test MyApplication method.
+     */
+    @Test void testResourceAccessAdaptedIndex() {
+        WebServerConfiguration configuration = new WebServerConfiguration();
+        configuration.setPort(10011);
+        configuration.setIoThreads(1);
+        configuration.setBasicAuthentication(null);
+        configuration.setHealthPath(null);
+        configuration.setDirectory("src/main");
+        //configuration.setResourcePath("");
+        configuration.setWelcomeFiles("index.html, index.htm, Links.txt");
+
+        JWebServer jwebserver = new JWebServer();
+        jwebserver.setConfiguration(configuration);
+        jwebserver.run();
+
+        assertEquals("/", configuration.getResourcePath());
+        RestAssured.port = configuration.getPort();
+
+        given().get("/java").then().statusCode(200);
+        given().get("/java/").then().statusCode(200);
+        given().get("/java/Links.txt").then().statusCode(200);
+        given().get("java/Links.txt").then().statusCode(200);
+    }
+
+    
+    /**
+     * Test MyApplication method.
+     */
+    @Test void testBasicAuth() {
+        WebServerConfiguration configuration = new WebServerConfiguration();
+        configuration.setPort(10012);
         configuration.setIoThreads(1);
         configuration.setBasicAuthentication("user:password");
         
