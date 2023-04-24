@@ -3,7 +3,7 @@
  *
  * Copyright by toolarium, all rights reserved.
  */
-package com.github.toolarium.jwebserver;
+package com.github.toolarium.jwebserver.logging;
 
 import com.github.toolarium.jwebserver.logger.logback.LogbackUtil;
 import org.junit.jupiter.api.Test;
