@@ -39,24 +39,33 @@ public class ClassPathResourceManager extends io.undertow.server.handlers.resour
     public Resource getResource(String path) throws IOException {
         Resource resource = super.getResource(path);
         
-        if (LOG.isDebugEnabled()) {
-            if (resource != null) {
-                if (resource.isDirectory()) {
+        if (resource != null) {
+            if (resource.isDirectory()) {
+                if (LOG.isDebugEnabled()) {
                     LOG.debug("Found directory [" + resource.getPath() + "] in  [" + resource.getUrl() + "].");
-                } else {
-                    // Issue and workaround: in some cases directory are not properly detected. In this cases the length is always zero.
-                    if ((resource.getContentLength() == null || resource.getContentLength().longValue() == 0L) && !path.endsWith("/")) {
-                        LOG.debug("Check if it is a directory resource [" + resource.getPath() + "/]...");
-                        Resource  subResource = super.getResource(path + "/");
-                        if (subResource != null && subResource.isDirectory()) {
-                            LOG.debug("Found directory [" + resource.getPath() + "/] in  [" + resource.getUrl() + "].");
-                            return subResource;
-                        }
-                    }
-                    
-                    LOG.debug("Found resource [" + resource.getPath() + "] in  [" + resource.getUrl() + "] " + resource.getContentLength());
                 }
             } else {
+                // Issue and workaround: in some cases directory are not properly detected. In this cases the length is always zero.
+                if ((resource.getContentLength() == null || resource.getContentLength().longValue() == 0L) && !path.endsWith("/")) {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Check if it is a directory resource [" + resource.getPath() + "/]...");
+                    }
+                    
+                    Resource  subResource = super.getResource(path + "/");
+                    if (subResource != null && subResource.isDirectory()) {
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug("Found directory [" + resource.getPath() + "/] in  [" + resource.getUrl() + "].");
+                        }
+                        return subResource;
+                    }
+                }
+                
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Found resource [" + resource.getPath() + "] in  [" + resource.getUrl() + "] " + resource.getContentLength());
+                }
+            }
+        } else {
+            if (LOG.isDebugEnabled()) {
                 LOG.debug("Resource not found [" + path + "].");
             }
         }

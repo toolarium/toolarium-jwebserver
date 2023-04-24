@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Updated dependencies.
 - Enhanced test cases.
+### Fixed
+- In some cases directory handling is not properly working.
 
 ## [ 1.1.1 ] - 2022-12-29
 ### Fixed
