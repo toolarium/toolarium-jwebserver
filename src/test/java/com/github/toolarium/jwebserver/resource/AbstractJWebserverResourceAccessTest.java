@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.github.toolarium.jwebserver.AbstractJWebServerTest;
 import com.github.toolarium.jwebserver.config.WebServerConfiguration;
+import com.github.toolarium.jwebserver.handler.resource.ResourceHandler;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.Test;
 
@@ -30,20 +31,44 @@ public abstract class AbstractJWebserverResourceAccessTest extends AbstractJWebS
         setDirectory(configuration);
         run(configuration);
         
-        assertEquals(SLASH, configuration.getResourcePath());
+        assertEquals(ResourceHandler.SLASH, configuration.getResourcePath());
         RestAssured.port = configuration.getPort();
         
-        given().when().get(SLASH).then().statusCode(403);
-        given().when().get(SLASH + "testfile.json").then().statusCode(200);
+        given().when().get(ResourceHandler.SLASH).then().statusCode(403);
+        given().when().get(ResourceHandler.SLASH + "testfile.json").then().statusCode(200);
         given().when().get("testfile.json").then().statusCode(200);
         
         
-        given().get(SLASH).then().statusCode(403);
-        given().get(SLASH + MYPATH).then().statusCode(403);
-        given().get(SLASH + MYPATH + SLASH).then().statusCode(403);
-        given().get(SLASH + MYPATH + SLASH + INDEX_JSON).then().statusCode(200);
-        given().get(MYPATH + SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(ResourceHandler.SLASH).then().statusCode(403);
+        given().get(ResourceHandler.SLASH + MYPATH).then().statusCode(403);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH).then().statusCode(403);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(MYPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);        
+    }
+
+    
+    /**
+     * Test redirect resource access
+     */
+    @Test void testRedirectResourceAccessWithoutAppendix() {
+        WebServerConfiguration configuration = newConfiguration();
+        configuration.setSupportedFileExtensions(".json");
+        setDirectory(configuration);
+        run(configuration);
         
+        assertEquals(ResourceHandler.SLASH, configuration.getResourcePath());
+        RestAssured.port = configuration.getPort();
+        
+        given().when().get(ResourceHandler.SLASH).then().statusCode(403);
+        given().when().get(ResourceHandler.SLASH + "testfile").then().statusCode(200);
+        given().when().get("testfile").then().statusCode(200);
+        
+        
+        given().get(ResourceHandler.SLASH).then().statusCode(403);
+        given().get(ResourceHandler.SLASH + MYPATH).then().statusCode(403);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH).then().statusCode(403);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(MYPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);        
     }
 
     
@@ -53,20 +78,20 @@ public abstract class AbstractJWebserverResourceAccessTest extends AbstractJWebS
     @Test void testResourceAccessWithPrefix() {
         WebServerConfiguration configuration = newConfiguration();
         setDirectory(configuration);
-        configuration.setResourcePath(SLASH + MYPATH);
+        configuration.setResourcePath(ResourceHandler.SLASH + MYPATH);
         run(configuration);
 
-        assertEquals(SLASH + MYPATH, configuration.getResourcePath());
+        assertEquals(ResourceHandler.SLASH + MYPATH, configuration.getResourcePath());
         RestAssured.port = configuration.getPort();
 
-        given().get(SLASH + MYPATH).then().statusCode(403);
-        given().get(SLASH + MYPATH + SLASH).then().statusCode(403);
-        given().get(SLASH + MYPATH + SLASH + INDEX_JSON).then().statusCode(200);
-        given().get(MYPATH + SLASH + INDEX_JSON).then().statusCode(200);
-        given().get(SLASH + MYPATH + SLASH + SUBPATH).then().statusCode(403);
-        given().get(SLASH + MYPATH  + SLASH + SUBPATH + SLASH).then().statusCode(403);
-        given().get(SLASH + MYPATH  + SLASH + SUBPATH + SLASH + INDEX_JSON).then().statusCode(200);
-        given().get(MYPATH + SLASH + SUBPATH + SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH).then().statusCode(403);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH).then().statusCode(403);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(MYPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH + SUBPATH).then().statusCode(403);
+        given().get(ResourceHandler.SLASH + MYPATH  + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH).then().statusCode(403);
+        given().get(ResourceHandler.SLASH + MYPATH  + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(MYPATH + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
     }
 
     
@@ -76,21 +101,21 @@ public abstract class AbstractJWebserverResourceAccessTest extends AbstractJWebS
     @Test void testResourceAccessWithPrefixAndAdaptedIndex() {
         WebServerConfiguration configuration = newConfiguration();
         setDirectory(configuration);
-        configuration.setResourcePath(SLASH + MYPATH + SLASH);
+        configuration.setResourcePath(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH);
         configuration.setWelcomeFiles("index.html, index.htm, index.json");
         run(configuration);
         
-        assertEquals(SLASH + MYPATH + SLASH, configuration.getResourcePath());
+        assertEquals(ResourceHandler.SLASH + MYPATH, configuration.getResourcePath());
         RestAssured.port = configuration.getPort();
 
-        given().get(SLASH + MYPATH).then().statusCode(200);
-        given().get(SLASH + MYPATH + SLASH).then().statusCode(200);
-        given().get(SLASH + MYPATH + SLASH + INDEX_JSON).then().statusCode(200);
-        given().get(MYPATH + SLASH + INDEX_JSON).then().statusCode(200);
-        given().get(SLASH + MYPATH + SLASH + SUBPATH).then().statusCode(200);
-        given().get(SLASH + MYPATH  + SLASH + SUBPATH + SLASH).then().statusCode(200);
-        given().get(SLASH + MYPATH  + SLASH + SUBPATH + SLASH + INDEX_JSON).then().statusCode(200);
-        given().get(MYPATH + SLASH + SUBPATH + SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(MYPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH + SUBPATH).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH  + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH  + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(MYPATH + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
     }
 
     
@@ -104,17 +129,17 @@ public abstract class AbstractJWebserverResourceAccessTest extends AbstractJWebS
         configuration.setWelcomeFiles("index.html, index.htm, index.json");
         run(configuration);
         
-        assertEquals(SLASH, configuration.getResourcePath());
+        assertEquals(ResourceHandler.SLASH, configuration.getResourcePath());
         RestAssured.port = configuration.getPort();
 
-        given().get(SLASH + MYPATH).then().statusCode(200);
-        given().get(SLASH + MYPATH + SLASH).then().statusCode(200);
-        given().get(SLASH + MYPATH + SLASH + INDEX_JSON).then().statusCode(200);
-        given().get(MYPATH + SLASH + INDEX_JSON).then().statusCode(200);
-        given().get(SLASH + MYPATH + SLASH + SUBPATH).then().statusCode(200);
-        given().get(SLASH + MYPATH  + SLASH + SUBPATH + SLASH).then().statusCode(200);
-        given().get(SLASH + MYPATH  + SLASH + SUBPATH + SLASH + INDEX_JSON).then().statusCode(200);
-        given().get(MYPATH + SLASH + SUBPATH + SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(MYPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH + SUBPATH).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH  + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH  + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(MYPATH + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
     }
 
     

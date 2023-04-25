@@ -9,8 +9,6 @@ import com.github.toolarium.jwebserver.config.IWebServerConfiguration;
 import com.github.toolarium.jwebserver.handler.auth.BasicAuthenticationHttpHandler;
 import io.undertow.Handlers;
 import io.undertow.server.RoutingHandler;
-import io.undertow.server.handlers.RedirectHandler;
-import io.undertow.server.handlers.resource.PathResourceManager;
 import io.undertow.util.Methods;
 import java.nio.file.Paths;
 
@@ -49,13 +47,13 @@ public final class ResourceHandler {
                 path = "";
             }
             
-            resourceHandler = Handlers.resource(new com.github.toolarium.jwebserver.handler.resource.ClassPathResourceManager(ResourceHandler.class.getClassLoader(), path));
+            resourceHandler = Handlers.resource(new com.github.toolarium.jwebserver.handler.resource.ClassPathResourceManager(configuration, ResourceHandler.class.getClassLoader(), path));
         } else {
             if (path == null) {
                 path = ".";
             }
             
-            resourceHandler = Handlers.resource(new PathResourceManager(Paths.get(path), 10));
+            resourceHandler = Handlers.resource(new PathResourceManager(configuration, Paths.get(path), 10));
         }
 
         if (configuration.getWelcomeFiles() != null) {
@@ -67,13 +65,10 @@ public final class ResourceHandler {
         String resourcePath = configuration.getResourcePath();
         if (resourcePath == null || resourcePath.isBlank()) {
             resourcePath = SLASH;
-        } else if (!resourcePath.endsWith(SLASH)) {
-            resourcePath += SLASH;
         }
 
-        //routinrgHandler.add(Methods.GET, resourcePath + "*", BasicAuthenticationHttpHandler.addHandler(configuration, new RedirectDirectoryHandler(configuration, resourceHandler)));
         routinrgHandler.add(Methods.GET, resourcePath + "*", BasicAuthenticationHttpHandler.addHandler(configuration, resourceHandler));
-        routinrgHandler.setFallbackHandler(new RedirectHandler(resourcePath));
+        //routinrgHandler.setFallbackHandler(new RedirectHandler(resourcePath));
         return routinrgHandler;
     }
 }

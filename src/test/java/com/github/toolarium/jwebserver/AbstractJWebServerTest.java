@@ -12,7 +12,6 @@ import com.github.toolarium.jwebserver.config.WebServerConfiguration;
  * @author patrick
  */
 public abstract class AbstractJWebServerTest {
-    protected static final String SLASH = "/";
     protected static final String MYPATH = "mypath";
     protected static final String SUBPATH = "subpath";
     protected static final String INDEX_JSON = "index.json";

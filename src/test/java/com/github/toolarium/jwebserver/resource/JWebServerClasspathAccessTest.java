@@ -10,6 +10,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.github.toolarium.jwebserver.config.WebServerConfiguration;
+import com.github.toolarium.jwebserver.handler.resource.ResourceHandler;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
@@ -44,18 +45,18 @@ public class JWebServerClasspathAccessTest extends AbstractJWebserverResourceAcc
         configuration.setWelcomeFiles("index.html, index.htm, index.json");
         run(configuration);
         
-        assertEquals(SLASH, configuration.getResourcePath());
+        assertEquals(ResourceHandler.SLASH, configuration.getResourcePath());
         RestAssured.port = configuration.getPort();
 
-        given().get(SLASH + MYPATH).body();
-        given().get(SLASH + MYPATH).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
-        given().get(SLASH + MYPATH + SLASH).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
-        given().get(SLASH + MYPATH + SLASH).then().statusCode(200);
-        given().get(SLASH + MYPATH + SLASH + INDEX_JSON).then().statusCode(200);
-        given().get(MYPATH + SLASH + INDEX_JSON).then().statusCode(200);
-        given().get(SLASH + MYPATH + SLASH + SUBPATH).then().log().all().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
-        given().get(SLASH + MYPATH  + SLASH + SUBPATH + SLASH).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
-        given().get(SLASH + MYPATH  + SLASH + SUBPATH + SLASH + INDEX_JSON).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
-        given().get(MYPATH + SLASH + SUBPATH + SLASH + INDEX_JSON).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
+        given().get(ResourceHandler.SLASH + MYPATH).body();
+        given().get(ResourceHandler.SLASH + MYPATH).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(MYPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH + SUBPATH).then().log().all().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
+        given().get(ResourceHandler.SLASH + MYPATH  + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
+        given().get(ResourceHandler.SLASH + MYPATH  + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH + INDEX_JSON).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
+        given().get(MYPATH + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH + INDEX_JSON).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
     }
 }

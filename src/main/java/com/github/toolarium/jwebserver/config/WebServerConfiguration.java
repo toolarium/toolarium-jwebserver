@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
  * @author patrick
  */
 public class WebServerConfiguration implements IWebServerConfiguration {
+    private static final String DOT = ".";
     private static final String END_VALUE = "].";
     private static final String JWEBSERVER_PROPERTIES = "jwebserver.properties";
     private static final Logger LOG = LoggerFactory.getLogger(WebServerConfiguration.class);
@@ -42,6 +43,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
     private int ioThreads;
     private int workerThreads;
     private String[] welcomeFiles;
+    private String[] supportedFileExtensions;
     
     
     /**
@@ -51,7 +53,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         this.webserverName = "";
         this.hostname = "0.0.0.0";
         this.port = 8080;
-        this.directory = ".";
+        this.directory = DOT;
         this.isLocalDirectory = true;
         this.readFromClasspath = false;
         this.directoryListingEnabled = false;
@@ -64,6 +66,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         this.ioThreads = Math.max(Runtime.getRuntime().availableProcessors(), 2);
         this.workerThreads = ioThreads * 8;
         this.welcomeFiles = new String[] {"index.html", "index.htm", "default.html", "default.htm"};
+        this.supportedFileExtensions = null;
     }
 
 
@@ -89,6 +92,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         this.ioThreads = configuration.getIoThreads();
         this.workerThreads = configuration.getWorkerThreads();
         this.welcomeFiles = configuration.getWelcomeFiles();
+        this.supportedFileExtensions = configuration.getSupportedFileExtensions();
     }
 
     
@@ -436,6 +440,10 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         if (resourcePath != null && !resourcePath.isBlank()) {
             LOG.debug("Set resourcePath: [" + resourcePath + END_VALUE);            
             this.resourcePath = resourcePath;
+            
+            if (resourcePath.endsWith(ResourceHandler.SLASH)) {
+                this.resourcePath = resourcePath.substring(0, resourcePath.length() - 1);
+            }
         }
         return this;
     }
@@ -510,7 +518,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
      */
     public WebServerConfiguration setWelcomeFiles(String welcomeFiles) {
         if (welcomeFiles != null) {
-            setWelcomeFiles(parseWelcomeFiles(welcomeFiles));
+            setWelcomeFiles(parseStringArray(welcomeFiles));
         }
         return this;
     }
@@ -525,10 +533,57 @@ public class WebServerConfiguration implements IWebServerConfiguration {
     public WebServerConfiguration setWelcomeFiles(String[] welcomeFiles) {
         if (welcomeFiles != null) {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Set welcomeFiles: [" + formatWelcomeFiles(welcomeFiles) + END_VALUE);            
+                LOG.debug("Set welcomeFiles: [" + formatArrayAsString(welcomeFiles) + END_VALUE);            
             }
             
             this.welcomeFiles = welcomeFiles;
+        }
+        return this;
+    }
+
+
+    /**
+     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getSupportedFileExtensions()
+     */
+    @Override
+    public String[] getSupportedFileExtensions() {
+        return this.supportedFileExtensions;
+    }
+
+    
+    /**
+     * Set the supported file extensions
+     *
+     * @param supportedFileExtensions the supported file extensions
+     * @return the WebServerConfiguration
+     */
+    public WebServerConfiguration setSupportedFileExtensions(String supportedFileExtensions) {
+        if (supportedFileExtensions != null) {
+            setSupportedFileExtensions(parseStringArray(supportedFileExtensions));
+        }
+        return this;
+    }
+
+    
+    /**
+     * Set the supported file extensions
+     *
+     * @param supportedFileExtensions the supported file extensions
+     * @return the WebServerConfiguration
+     */
+    public WebServerConfiguration setSupportedFileExtensions(String[] supportedFileExtensions) {
+        if (supportedFileExtensions != null) {
+            for (int i = 0; i < supportedFileExtensions.length; i++) {
+                if (supportedFileExtensions[i] != null && !supportedFileExtensions[i].startsWith(DOT)) {
+                    supportedFileExtensions[i] = DOT + supportedFileExtensions[i];
+                }
+            }
+            
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Set supportedFileExtensions: [" + formatArrayAsString(supportedFileExtensions) + END_VALUE);            
+            }
+            
+            this.supportedFileExtensions = supportedFileExtensions;
         }
         return this;
     }
@@ -557,7 +612,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
 
         setIoThreads(readProperty(properties, "ioThreads", ioThreads, false));
         setWorkerThreads(readProperty(properties, "workerThreads", workerThreads, false));
-        setWelcomeFiles(readProperty(properties, "welcomeFiles", formatWelcomeFiles(welcomeFiles), false));
+        setWelcomeFiles(readProperty(properties, "welcomeFiles", formatArrayAsString(welcomeFiles), false));
         
         setVerboseLevel(readProperty(properties, "verboseLevel", verboseLevel, false));
         setAccessLogFormatString(readProperty(properties, "accessLogFormatString", accessLogFormatString, false));
@@ -566,42 +621,44 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         setBasicAuthentication(readProperty(properties, "basicAuthentication", basicAuthentication, true));
         setHealthPath(readProperty(properties, "healthPath", healthPath, true));
         setResourcePath(readProperty(properties, "resourcePath", resourcePath, false));
+
+        setSupportedFileExtensions(readProperty(properties, "supportedFileExtensions", formatArrayAsString(supportedFileExtensions), false));
         return this;
     }
 
     
     /**
-     * Parse the welcome files
+     * Parse the string array
      *
-     * @param welcomeFiles the welcome files
+     * @param stringArray the string array
      * @return the parsed string
      */
-    public String[] parseWelcomeFiles(String welcomeFiles) {
-        if (welcomeFiles == null) {
+    public String[] parseStringArray(String stringArray) {
+        if (stringArray == null || stringArray.isBlank()) {
             return null;
         }
             
-        String[] welcomeList = welcomeFiles.split(",");
-        for (int i = 0; i < welcomeList.length; i++) {
-            welcomeList[i] = welcomeList[i].trim();
+        String[] stringArrayList = stringArray.split(",");
+        for (int i = 0; i < stringArrayList.length; i++) {
+            stringArrayList[i] = stringArrayList[i].trim();
         }
-        return welcomeList;
+        return stringArrayList;
     }
 
     
     /**
-     * Format the welcome files
+     * Format an array as string
      *
-     * @param welcomeFiles the welcome files
+     * @param stringArray the welcome files
      * @return the formated string
      */
-    public String formatWelcomeFiles(String[] welcomeFiles) {
-        if (welcomeFiles == null) {
+    public String formatArrayAsString(String[] stringArray) {
+        if (stringArray == null) {
             return null;
         }
         
         StringBuilder formatString = new StringBuilder();
-        for (String welcomeFile : welcomeFiles) {
+        for (String welcomeFile : stringArray) {
             if (!formatString.toString().isEmpty()) {
                 formatString.append(", ");
             }

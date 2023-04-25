@@ -15,6 +15,7 @@ import com.github.toolarium.jwebserver.logger.VerboseLevel;
  * @author patrick
  */
 public interface IWebServerConfiguration {
+    
     /**
      * Get the webserver name
      *
@@ -22,6 +23,7 @@ public interface IWebServerConfiguration {
      */
     String getWebserverName();
 
+    
     /**
      * Get the hostname
      *
@@ -204,4 +206,12 @@ public interface IWebServerConfiguration {
      * @return the welcome files
      */
     String[] getWelcomeFiles();
+
+
+    /**
+     * Set the supported file extensions
+     *
+     * @return the supported file extensions
+     */
+    String[] getSupportedFileExtensions();
 }
