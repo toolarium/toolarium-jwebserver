@@ -15,7 +15,7 @@ public abstract class AbstractJWebServerTest {
     protected static final String MYPATH = "mypath";
     protected static final String SUBPATH = "subpath";
     protected static final String INDEX_JSON = "index.json";
-    private static final int PORT_BASE = 10000;
+    private static final int PORT_BASE = 20000;
     private static int port = PORT_BASE;
     
     
