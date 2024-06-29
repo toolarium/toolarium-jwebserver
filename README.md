@@ -1,5 +1,5 @@
 [![License](https://img.shields.io/github/license/toolarium/toolarium-jwebserver)](https://github.com/toolarium/toolarium-jwebserver/blob/master/LICENSE)
-[![Maven Central](https://img.shields.io/maven-central/v/com.github.toolarium/toolarium-jwebserver/1.1.3)](https://search.maven.org/artifact/com.github.toolarium/toolarium-jwebserver/1.1.3/jar)
+[![Maven Central](https://img.shields.io/maven-central/v/com.github.toolarium/toolarium-jwebserver/1.1.6)](https://search.maven.org/artifact/com.github.toolarium/toolarium-jwebserver/1.1.6/jar)
 [![javadoc](https://javadoc.io/badge2/com.github.toolarium/toolarium-jwebserver/javadoc.svg)](https://javadoc.io/doc/com.github.toolarium/toolarium-jwebserver)
 
 # toolarium-jwebserver
@@ -20,7 +20,7 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 ```groovy
 dependencies {
-    implementation "com.github.toolarium:toolarium-jwebserver:1.1.3"
+    implementation "com.github.toolarium:toolarium-jwebserver:1.1.6"
 }
 ```
 
@@ -30,12 +30,12 @@ dependencies {
 <dependency>
     <groupId>com.github.toolarium</groupId>
     <artifactId>toolarium-jwebserver</artifactId>
-    <version>1.1.3</version>
+    <version>1.1.6</version>
 </dependency>
 ```
 
 ## Usage
 
 ```
-java -jar toolarium-jwebserver-1.1.3.jar
+java -jar toolarium-jwebserver-1.1.6.jar
 ```
