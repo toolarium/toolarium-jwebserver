@@ -6,7 +6,6 @@
 package com.github.toolarium.jwebserver.config;
 
 import com.github.toolarium.common.security.ISecuredValue;
-import com.github.toolarium.common.security.SecuredValue;
 import com.github.toolarium.jwebserver.handler.routing.RoutingHandler;
 import com.github.toolarium.jwebserver.logger.VerboseLevel;
 import com.github.toolarium.jwebserver.util.ConfigurationUtil;
@@ -109,7 +108,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
     public WebServerConfiguration setWebserverName(String webserverName) {
         if (webserverName != null && !webserverName.isBlank()) {
             LOG.debug("Set webserver name: [" + webserverName + "].  ");
-            this.webserverName = webserverName.trim();
+            this.webserverName = webserverName.trim(); 
         }
         
         return this;
@@ -159,7 +158,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
     public WebServerConfiguration setPort(Integer port) {
         if (port != null) {
             LOG.debug("Set port: [" + port + "].  ");            
-            this.port = port.intValue();
+            this.port = port; 
         }
         
         return this;
@@ -184,7 +183,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
     public WebServerConfiguration setSecurePort(Integer securePort) {
         if (securePort != null) {
             LOG.debug("Set secure port: [" + securePort + "].  ");            
-            this.securePort = securePort.intValue();
+            this.securePort = securePort;
         }
         
         return this;
@@ -348,7 +347,6 @@ public class WebServerConfiguration implements IWebServerConfiguration {
     }
 
     
-    
     /**
      * Set the I/O threads
      *
@@ -363,7 +361,6 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         }
         return this;
     }
-
 
     
     /**
@@ -573,7 +570,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
      * @return the result
      */
     private String readProperty(Properties properties, String name, String defaultValue, boolean allowEmptyValue) {
-        String result = properties.getProperty(name, defaultValue);
+        String result = ConfigurationUtil.getInstance().expand(properties.getProperty(name, defaultValue));
         
         if (result == null || result.isBlank()) {
             if (allowEmptyValue) {
@@ -612,12 +609,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
             }
         }
         
-        try {
-            return Boolean.valueOf(result);
-        } catch (Exception e) {
-            LOG.warn("Invalid value [" + result + "] for attribute [" + name + "], keep default value [" + defaultValue + END_VALUE);
-            return defaultValue;
-        }
+        return ConfigurationUtil.getInstance().convert(name, result, defaultValue);
     }
 
     
@@ -640,12 +632,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
             }
         }
         
-        try {
-            return Integer.valueOf(result);
-        } catch (Exception e) {
-            LOG.warn("Invalid value [" + result + "] for attribute [" + name + "], keep default value [" + defaultValue + END_VALUE);
-            return defaultValue;
-        }
+        return ConfigurationUtil.getInstance().convert(name, result, defaultValue);
     }
 
 
@@ -668,12 +655,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
             }
         }
         
-        try {
-            return VerboseLevel.valueOf(result);
-        } catch (Exception e) {
-            LOG.warn("Invalid value [" + result + "] for attribute [" + name + "], keep default value [" + defaultValue + END_VALUE);
-            return defaultValue;
-        }
+        return ConfigurationUtil.getInstance().convert(name, result, defaultValue);
     }
 
 
@@ -696,11 +678,6 @@ public class WebServerConfiguration implements IWebServerConfiguration {
             }
         }
         
-        try {
-            return new SecuredValue<String>(result);
-        } catch (Exception e) {
-            LOG.warn("Invalid value [" + result + "] for attribute [" + name + "], keep default value [" + defaultValue + END_VALUE);
-            return defaultValue;
-        }
+        return ConfigurationUtil.getInstance().convert(name, result, defaultValue);
     }
 }

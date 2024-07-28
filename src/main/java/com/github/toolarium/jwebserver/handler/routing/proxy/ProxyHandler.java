@@ -53,8 +53,9 @@ public final class ProxyHandler {
                     try {
                         URI uri = new URI(hostName);
                         SSLContext sslContext = null;
-                        
-                        if (uri.getScheme().endsWith("s")) {
+                        if (uri.getScheme() == null || uri.getScheme().isBlank()) {
+                            LOG.warn("Could not found schema in uri [" + hostName + "]!");
+                        } else if (uri.getScheme().endsWith("s")) {
                             try {
                                 sslContext = webServerConfiguration.getSSLServerConfiguration().getSSLContext();
                             } catch (Exception e) {

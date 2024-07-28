@@ -140,7 +140,7 @@ public class JWebServer implements Runnable {
                     //.setReuseXForwarded(reuseXForwarded)
                     .setMaxRequestTime(maxRequestTime)
                     .setConnectionsPerThread(connectionsPerThread)
-                    .setProxyHostNames(ConfigurationUtil.getInstance().parseStringArray(proxyHostNameList));
+                    .setProxyHostNames(proxyHostNameList);
 
             setConfiguration(webServerConfiguration);
         }
@@ -182,7 +182,12 @@ public class JWebServer implements Runnable {
         JWebServer jwebServer = new JWebServer();
         
         // parse command line and run
-        CommandLine commandLine = new CommandLine(jwebServer).setColorScheme(jwebServer.getColorSchmea());        
+        CommandLine commandLine = new CommandLine(jwebServer).setColorScheme(jwebServer.getColorSchmea())
+            .registerConverter(String.class, s -> ConfigurationUtil.getInstance().expand(s))
+            .registerConverter(Integer.class, s -> ConfigurationUtil.getInstance().convert(null, s, (Integer)null))
+            .registerConverter(Boolean.class, s -> ConfigurationUtil.getInstance().convert(null, s, (Boolean)null))
+            .registerConverter(VerboseLevel.class, s -> ConfigurationUtil.getInstance().convert(null, s, (VerboseLevel)null));
+        
         int exitCode = commandLine.execute(args);
         if (jwebServer.hasError()) {
             LOG.debug("Executed Ended with code:" + exitCode);
