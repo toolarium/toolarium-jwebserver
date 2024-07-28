@@ -6,9 +6,11 @@
 package com.github.toolarium.jwebserver.logger;
 
 import com.github.toolarium.jwebserver.Version;
+import com.github.toolarium.jwebserver.config.IResourceServerConfiguration;
 import com.github.toolarium.jwebserver.config.IWebServerConfiguration;
-import com.github.toolarium.jwebserver.handler.resource.ResourceHandler;
+import com.github.toolarium.jwebserver.handler.routing.RoutingHandler;
 import com.github.toolarium.jwebserver.logger.ansi.ColoredStackTraceWriter;
+import com.github.toolarium.jwebserver.util.ConfigurationUtil;
 import io.undertow.Undertow.ListenerInfo;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -31,7 +33,7 @@ public class LifecycleLogger {
     private static final String APP = "jwebserver v" + Version.VERSION;
     private ColorScheme colorSchema = Help.defaultColorScheme(Help.Ansi.AUTO);
 
-    
+
     /**
      * Constructor
      */
@@ -62,11 +64,11 @@ public class LifecycleLogger {
     /**
      * Print server startup
      *
-     * @param configuration the configuration
+     * @param webServerConfiguration the web server configuration
      * @param listenerInfoList the listener information
      */
-    public void printServerStartup(IWebServerConfiguration configuration, List<ListenerInfo> listenerInfoList) {
-        System.out.println(prepareServerStartup(configuration, listenerInfoList)); // CHECKSTYLE IGNORE THIS LINE
+    public void printServerStartup(IWebServerConfiguration webServerConfiguration, List<ListenerInfo> listenerInfoList) {
+        System.out.println(prepareServerStartup(webServerConfiguration, listenerInfoList)); // CHECKSTYLE IGNORE THIS LINE
     }
     
 
@@ -88,30 +90,39 @@ public class LifecycleLogger {
     /**
      * Get server message
      *
-     * @param configuration the configuration
+     * @param webServerConfiguration the web server configuration
      * @param listenerInfoList the listener information
      * @return the server message
      */
-    public String prepareServerStartup(IWebServerConfiguration configuration, List<ListenerInfo> listenerInfoList) {
-        final String resourcePath = prepareResourcePath(configuration);
+    public String prepareServerStartup(IWebServerConfiguration webServerConfiguration, List<ListenerInfo> listenerInfoList) {
+        final String resourcePath = prepareResourcePath(webServerConfiguration);
         StringBuilder message = new StringBuilder();
         message.append(NL).append(LINE).append(NL);
         
-        preapreTitle(message, configuration);
-        prepareListener(message, configuration, listenerInfoList, resourcePath);
-        prepareResource(message, configuration, resourcePath);
+        preapreTitle(message, webServerConfiguration);
+        prepareListener(message, webServerConfiguration, listenerInfoList, resourcePath);
+
+        if (webServerConfiguration.isProxyServer()) {
+            prepareProxy(message, webServerConfiguration, resourcePath);
+        } else {
+            prepareResource(message, webServerConfiguration, resourcePath);
+        }
 
         if (listenerInfoList != null) { 
-            if (configuration.hasHealthCheck()) {
-                prepareHeader(message, "Health").append(commandText(configuration.getHealthPath())).append(NL);
+            if (webServerConfiguration.hasHealthCheck()) {
+                prepareHeader(message, "Health").append(commandText(webServerConfiguration.getHealthPath())).append(NL);
             }
             
-            if (configuration.hasBasicAuthentication()) {
+            if (webServerConfiguration.hasBasicAuthentication()) {
                 prepareHeader(message, "Basic Auth").append("enabled").append(NL);
             }
     
-            if (configuration.isDirectoryListingEnabled()) {
-                prepareHeader(message, "Listing").append("enabled").append(NL);
+            if (webServerConfiguration.isProxyServer()) {
+                // NOP
+            } else {
+                if (webServerConfiguration.getResourceServerConfiguration().isDirectoryListingEnabled()) {
+                    prepareHeader(message, "Listing").append("enabled").append(NL);
+                }
             }
         }
         
@@ -123,17 +134,17 @@ public class LifecycleLogger {
     /**
      * Prepare the resource path
      * 
-     * @param configuration the configuration
+     * @param webServerConfiguration the web server configuration
      * @return the prepared resource path
      */
-    public String prepareResourcePath(IWebServerConfiguration configuration) {
-        String resourcePath = configuration.getResourcePath();
-        if (!resourcePath.isEmpty() && !resourcePath.startsWith(ResourceHandler.SLASH)) {
-            resourcePath = ResourceHandler.SLASH + resourcePath;
+    public String prepareResourcePath(IWebServerConfiguration webServerConfiguration) {
+        String resourcePath = webServerConfiguration.getResourcePath();
+        if (!resourcePath.isEmpty() && !resourcePath.startsWith(RoutingHandler.SLASH)) {
+            resourcePath = RoutingHandler.SLASH + resourcePath;
         }
 
-        if (!resourcePath.endsWith(ResourceHandler.SLASH)) { 
-            resourcePath += ResourceHandler.SLASH;
+        if (!resourcePath.endsWith(RoutingHandler.SLASH)) { 
+            resourcePath += RoutingHandler.SLASH;
         }
         return resourcePath;
     }
@@ -142,29 +153,29 @@ public class LifecycleLogger {
     /**
      * Prepare the path
      * 
-     * @param configuration the configuration
+     * @param resourceConfiguration the resource configuration
      * @param resourcePath the resource path
      * @return the message
      */
-    private String preparePath(IWebServerConfiguration configuration, String resourcePath) {
-        String path = configuration.getDirectory();
+    private String preparePath(IResourceServerConfiguration resourceConfiguration, String resourcePath) {
+        String path = resourceConfiguration.getDirectory();
         if (path.equals(".")) {
             path = "";
         }
 
-        if (!path.isEmpty() && !path.startsWith(ResourceHandler.SLASH)) {
-            path = ResourceHandler.SLASH + path;
+        if (!path.isEmpty() && !path.startsWith(RoutingHandler.SLASH)) {
+            path = RoutingHandler.SLASH + path;
         }
 
-        if (!resourcePath.equals(ResourceHandler.SLASH)) {
+        if (!resourcePath.equals(RoutingHandler.SLASH)) {
             path += resourcePath;
         }
 
-        if (!path.endsWith(ResourceHandler.SLASH)) {
-            path += ResourceHandler.SLASH;
+        if (!path.endsWith(RoutingHandler.SLASH)) {
+            path += RoutingHandler.SLASH;
         }
 
-        if (configuration.isLocalDirectory()) {
+        if (resourceConfiguration.isLocalDirectory()) {
             path = System.getProperty("user.dir").replace('\\', '/') + path;
         }
         return path;
@@ -174,15 +185,15 @@ public class LifecycleLogger {
     /**
      * Prepare the title
      * 
-     * @param configuration the configuration
+     * @param webServerConfiguration the web server configuration
      * @param message the message
      * @return the message
      */
-    private StringBuilder preapreTitle(StringBuilder message, IWebServerConfiguration configuration) {
+    private StringBuilder preapreTitle(StringBuilder message, IWebServerConfiguration webServerConfiguration) {
         message.append("  ");
-        if (configuration.getWebserverName() != null && !configuration.getWebserverName().isBlank()) {
+        if (webServerConfiguration.getWebserverName() != null && !webServerConfiguration.getWebserverName().isBlank()) {
             //title = "" + parameterText(configuration.getWebserverName()) + " (powered by " + APP + ")";
-            message.append(parameterText(configuration.getWebserverName())).append(" (powered by ").append(APP).append(")");
+            message.append(parameterText(webServerConfiguration.getWebserverName())).append(" (powered by ").append(APP).append(")");
 
         } else {
             message.append(parameterText(APP)); /*Ansi.AUTO.string("@|bold,blue " + APP + "!|@")*/
@@ -196,12 +207,12 @@ public class LifecycleLogger {
      * Prepare the listener
      * 
      * @param message the message
-     * @param configuration the configuration
+     * @param webServerConfiguration the web server configuration
      * @param listenerInfoList the listener list
      * @param resourcePath the resource path
      * @return the message
      */
-    private StringBuilder prepareListener(StringBuilder message, IWebServerConfiguration configuration, List<ListenerInfo> listenerInfoList, String resourcePath) {
+    private StringBuilder prepareListener(StringBuilder message, IWebServerConfiguration webServerConfiguration, List<ListenerInfo> listenerInfoList, String resourcePath) {
         if (listenerInfoList != null && !listenerInfoList.isEmpty()) {
             for (ListenerInfo listenerInfo : listenerInfoList) {
                 StringBuilder listenerInfoMessage = new StringBuilder();
@@ -217,13 +228,19 @@ public class LifecycleLogger {
                     InetAddress address = ((InetSocketAddress)listenerInfo.getAddress()).getAddress();
                     if (address instanceof Inet6Address) {
                         if (listenerInfoList.size() == 1) {
-                            listenerAddress = ResourceHandler.SLASH + configuration.getHostname() + ":" + configuration.getPort();                      
+                            if (webServerConfiguration.getPort() != null) {
+                                listenerAddress = RoutingHandler.SLASH + webServerConfiguration.getHostname() + ":" + webServerConfiguration.getPort();                      
+                            }
+                            
+                            if (webServerConfiguration.getSecurePort() != null) {
+                                listenerAddress = RoutingHandler.SLASH + webServerConfiguration.getHostname() + ":" + webServerConfiguration.getSecurePort();                      
+                            }
                         }
                     }
                 }
                 listenerInfoMessage.append(listenerAddress);
                 
-                if (!ResourceHandler.SLASH.equals(resourcePath)) {
+                if (!RoutingHandler.SLASH.equals(resourcePath)) {
                     listenerInfoMessage.append(resourcePath);
                 }
                 listenerInfoMessage.append(NL);
@@ -236,26 +253,37 @@ public class LifecycleLogger {
         return message;
     }
 
+    
+    /**
+     * Prepare proxy message
+     * 
+     * @param webServerConfiguration the web server configuration
+     * @param resourcePath the resource path
+     * @param message the message builder
+     * @return the message
+     */
+    private StringBuilder prepareProxy(StringBuilder message, IWebServerConfiguration webServerConfiguration, final String resourcePath) {
+        return prepareHeader(message, "Proxy").append(commandText(resourcePath)).append(" -> ")
+                .append(commandText(ConfigurationUtil.getInstance().formatArrayAsString(webServerConfiguration.getProxyServerConfiguration().getProxyHostNames()))).append(NL);
+    }
 
 
     /**
      * Prepare resource message
      * 
-     * @param configuration the configuration
+     * @param webServerConfiguration the web server configuration
      * @param resourcePath the resource path
      * @param message the message builder
      * @return the message
      */
-    private StringBuilder prepareResource(StringBuilder message, IWebServerConfiguration configuration, final String resourcePath) {
-        final String path = preparePath(configuration, resourcePath);
+    private StringBuilder prepareResource(StringBuilder message, IWebServerConfiguration webServerConfiguration, final String resourcePath) {
+        final String path = preparePath(webServerConfiguration.getResourceServerConfiguration(), resourcePath);
         String pathType = "{PATH}:";
-        if (configuration.readFromClasspath()) {
+        if (webServerConfiguration.getResourceServerConfiguration().readFromClasspath()) {
             pathType = " {CLASSPATH}:";
         }
-        
         return prepareHeader(message, "Resource").append(commandText(resourcePath)).append(" -> ").append(pathType).append(commandText(path)).append(NL);
     }
-
 
 
     /**

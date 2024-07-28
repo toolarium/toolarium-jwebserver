@@ -26,8 +26,8 @@ public class JWebServerBaseTest extends AbstractJWebServerTest {
      */
     @Test void testDefaultBehaviour() {
         WebServerConfiguration configuration = newConfiguration();
-        configuration.setWelcomeFiles("index.html, index.htm");
-        configuration.setDirectory("META-INF", Boolean.TRUE);
+        configuration.getResourceServerConfiguration().setWelcomeFiles("index.html, index.htm");
+        configuration.getResourceServerConfiguration().setDirectory("META-INF", Boolean.TRUE);
         run(configuration);
 
         RestAssured.port = configuration.getPort();

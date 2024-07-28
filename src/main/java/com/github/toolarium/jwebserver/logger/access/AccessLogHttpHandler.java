@@ -35,20 +35,20 @@ public final class AccessLogHttpHandler {
     /**
      * Add basic authentication
      *
-     * @param configuration the configuration
+     * @param webServerConfiguration the web server configuration
      * @param handlerToWrap the handler to wrap
      * @return the handler
      */
-    public static HttpHandler addHandler(final IWebServerConfiguration configuration, final HttpHandler handlerToWrap) {
+    public static HttpHandler addHandler(final IWebServerConfiguration webServerConfiguration, final HttpHandler handlerToWrap) {
         
-        if (VerboseLevel.VERBOSE.equals(configuration.getVerboseLevel()) || VerboseLevel.ACCESS.equals(configuration.getVerboseLevel())) {
-            final Logger log = LogbackUtil.getInstance().createAccessLogAppender(ACCESSLOG_APPENDER_NAME, configuration.getAccessLogFilePattern());
+        if (VerboseLevel.VERBOSE.equals(webServerConfiguration.getVerboseLevel()) || VerboseLevel.ACCESS.equals(webServerConfiguration.getVerboseLevel())) {
+            final Logger log = LogbackUtil.getInstance().createAccessLogAppender(ACCESSLOG_APPENDER_NAME, webServerConfiguration.getAccessLogFilePattern());
             final AccessLogReceiver accessLogReceiver = new Slf4jAccessLogReceiver(log);
-            return new AccessLogHandler(handlerToWrap, accessLogReceiver, configuration.getAccessLogFormatString(), AccessLogHttpHandler.class.getClassLoader());
-        } else if (VerboseLevel.ACCESS_CONSOLE.equals(configuration.getVerboseLevel())) {
+            return new AccessLogHandler(handlerToWrap, accessLogReceiver, webServerConfiguration.getAccessLogFormatString(), AccessLogHttpHandler.class.getClassLoader());
+        } else if (VerboseLevel.ACCESS_CONSOLE.equals(webServerConfiguration.getVerboseLevel())) {
             //LogbackUtil.getInstance().detachAppender(ACCESSLOG_APPENDER_NAME);
             final AccessLogReceiver accessLogReceiver = new StdoutAccessLogReceiver();
-            return new AccessLogHandler(handlerToWrap, accessLogReceiver, configuration.getAccessLogFormatString(), AccessLogHttpHandler.class.getClassLoader());
+            return new AccessLogHandler(handlerToWrap, accessLogReceiver, webServerConfiguration.getAccessLogFormatString(), AccessLogHttpHandler.class.getClassLoader());
         } else {
             //LogbackUtil.getInstance().detachAppender(ACCESSLOG_APPENDER_NAME);
         }

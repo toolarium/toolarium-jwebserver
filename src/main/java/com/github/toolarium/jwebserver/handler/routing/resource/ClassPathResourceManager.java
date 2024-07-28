@@ -3,8 +3,9 @@
  *
  * Copyright by toolarium, all rights reserved.
  */
-package com.github.toolarium.jwebserver.handler.resource;
+package com.github.toolarium.jwebserver.handler.routing.resource;
 
+import com.github.toolarium.jwebserver.config.IResourceServerConfiguration;
 import com.github.toolarium.jwebserver.config.IWebServerConfiguration;
 import io.undertow.server.handlers.resource.Resource;
 import java.io.IOException;
@@ -20,19 +21,19 @@ import org.slf4j.LoggerFactory;
  */
 public class ClassPathResourceManager extends io.undertow.server.handlers.resource.ClassPathResourceManager {
     private static final Logger LOG = LoggerFactory.getLogger(ClassPathResourceManager.class);
-    private final IWebServerConfiguration configuration;
+    private final IResourceServerConfiguration configuration;
     
 
     /**
      * Constructor for ClassPathResourceManager
      *
-     * @param configuration the configuration
+     * @param webServerConfiguration the web server configuration
      * @param classLoader the class loader
      * @param prefix the prefix
      */
-    public ClassPathResourceManager(final IWebServerConfiguration configuration, final ClassLoader classLoader, final String prefix) {
+    public ClassPathResourceManager(final IWebServerConfiguration webServerConfiguration, final ClassLoader classLoader, final String prefix) {
         super(classLoader, prefix);
-        this.configuration = configuration;
+        this.configuration = webServerConfiguration.getResourceServerConfiguration();
     }
     
     

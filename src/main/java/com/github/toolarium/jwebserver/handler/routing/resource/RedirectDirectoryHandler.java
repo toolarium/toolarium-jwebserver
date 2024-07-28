@@ -3,9 +3,10 @@
  *
  * Copyright by toolarium, all rights reserved.
  */
-package com.github.toolarium.jwebserver.handler.resource;
+package com.github.toolarium.jwebserver.handler.routing.resource;
 
 import com.github.toolarium.jwebserver.config.IWebServerConfiguration;
+import com.github.toolarium.jwebserver.handler.routing.RoutingHandler;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
@@ -24,18 +25,18 @@ import org.slf4j.LoggerFactory;
 public class RedirectDirectoryHandler implements HttpHandler {
     private static final Logger LOG = LoggerFactory.getLogger(RedirectDirectoryHandler.class);
     private static final String HTTP2_UPGRADE_PREFIX = "h2";
-    private final IWebServerConfiguration configuration;
+    private final IWebServerConfiguration webServerConfiguration;
     private final HttpHandler next;
 
     
     /**
      * Constructor for RedirectDirHandler
      *
-     * @param configuration the configuration
+     * @param webServerConfiguration the web server configuration
      * @param next the next handler
      */
-    public RedirectDirectoryHandler(final IWebServerConfiguration configuration, HttpHandler next) {
-        this.configuration = configuration;
+    public RedirectDirectoryHandler(final IWebServerConfiguration webServerConfiguration, HttpHandler next) {
+        this.webServerConfiguration = webServerConfiguration;
         this.next = next;
     }
 
@@ -45,9 +46,9 @@ public class RedirectDirectoryHandler implements HttpHandler {
      */
     @Override
     public void handleRequest(HttpServerExchange exchange) throws Exception {
-        String resourcePath = configuration.getResourcePath();
-        if (!resourcePath.endsWith(ResourceHandler.SLASH)) {
-            resourcePath += ResourceHandler.SLASH;
+        String resourcePath = webServerConfiguration.getResourcePath();
+        if (!resourcePath.endsWith(RoutingHandler.SLASH)) {
+            resourcePath += RoutingHandler.SLASH;
         }
         final boolean redirect = !exchange.getRelativePath().startsWith(resourcePath);
 
@@ -65,8 +66,8 @@ public class RedirectDirectoryHandler implements HttpHandler {
                 exchange.setStatusCode(StatusCodes.TEMPORARY_REDIRECT);
             }
 
-            if (!exchange.getRelativePath().endsWith(ResourceHandler.SLASH)) {
-                resourcePath = exchange.getRelativePath() + ResourceHandler.SLASH;
+            if (!exchange.getRelativePath().endsWith(RoutingHandler.SLASH)) {
+                resourcePath = exchange.getRelativePath() + RoutingHandler.SLASH;
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Directory redirect: " + exchange.getRelativePath() + " -> " + resourcePath);
                 }

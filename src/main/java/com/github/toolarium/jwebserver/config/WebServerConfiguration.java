@@ -5,8 +5,11 @@
  */
 package com.github.toolarium.jwebserver.config;
 
-import com.github.toolarium.jwebserver.handler.resource.ResourceHandler;
+import com.github.toolarium.common.security.ISecuredValue;
+import com.github.toolarium.common.security.SecuredValue;
+import com.github.toolarium.jwebserver.handler.routing.RoutingHandler;
 import com.github.toolarium.jwebserver.logger.VerboseLevel;
+import com.github.toolarium.jwebserver.util.ConfigurationUtil;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,29 +25,25 @@ import org.slf4j.LoggerFactory;
  * @author patrick
  */
 public class WebServerConfiguration implements IWebServerConfiguration {
-    private static final String DOT = ".";
     private static final String END_VALUE = "].";
     private static final String JWEBSERVER_PROPERTIES = "jwebserver.properties";
     private static final Logger LOG = LoggerFactory.getLogger(WebServerConfiguration.class);
-    private static final String USER_HOME = System.getProperty("user.home");
     private String webserverName;
     private String hostname;
-    private int port;
-    private String directory;
-    private boolean isLocalDirectory;
-    private boolean readFromClasspath;
-    private boolean directoryListingEnabled;
+    private Integer port;
+    private Integer securePort;
     private VerboseLevel verboseLevel;
     private String accessLogFormatString;
     private String accessLogFilePattern;
     private String basicAuthentication;
     private String healthPath;
-    private String resourcePath;
     private int ioThreads;
     private int workerThreads;
-    private String[] welcomeFiles;
-    private String[] supportedFileExtensions;
-    
+    private String resourcePath;
+    private SSLServerConfiguration sslServerConfiguration;
+    private ResourceServerConfiguration resourceServerConfiguration;
+    private ProxyServerConfiguration proxyServerConfiguration;
+
     
     /**
      * Constructor for WebServerConfiguration
@@ -52,47 +51,43 @@ public class WebServerConfiguration implements IWebServerConfiguration {
     public WebServerConfiguration() {
         this.webserverName = "";
         this.hostname = "0.0.0.0";
-        this.port = 8080;
-        this.directory = DOT;
-        this.isLocalDirectory = true;
-        this.readFromClasspath = false;
-        this.directoryListingEnabled = false;
-        this.verboseLevel = VerboseLevel.INFO;
+        this.port = null;
+        this.securePort = null;
+        this.verboseLevel = VerboseLevel.VERBOSE;
         this.accessLogFormatString = "combined";
         this.accessLogFilePattern = "logs/access-%d{yyyy-MM-dd}.log.gz"; // "logs/access-%d{yyyy-MM-dd}.%i.log.gz"
         this.basicAuthentication = null;
         this.healthPath = "/q/health";
-        this.resourcePath = ResourceHandler.SLASH;
         this.ioThreads = Math.max(Runtime.getRuntime().availableProcessors(), 2);
         this.workerThreads = ioThreads * 8;
-        this.welcomeFiles = new String[] {"index.html", "index.htm", "default.html", "default.htm"};
-        this.supportedFileExtensions = null;
+        this.resourcePath = RoutingHandler.SLASH;
+        this.sslServerConfiguration = new SSLServerConfiguration();
+        this.resourceServerConfiguration = new ResourceServerConfiguration();
+        this.proxyServerConfiguration = new ProxyServerConfiguration();
     }
 
 
     /**
      * Constructor for WebServerConfiguration
      * 
-     * @param configuration the configuration
+     * @param webServerConfiguration the web server configuration
      */
-    public WebServerConfiguration(IWebServerConfiguration configuration) {
-        this.webserverName = configuration.getWebserverName();
-        this.hostname = configuration.getHostname();
-        this.port = configuration.getPort();
-        this.directory = configuration.getDirectory();
-        this.isLocalDirectory = configuration.isLocalDirectory();
-        this.readFromClasspath = configuration.readFromClasspath();
-        this.directoryListingEnabled = configuration.isDirectoryListingEnabled();
-        this.verboseLevel = configuration.getVerboseLevel();
-        this.accessLogFormatString = configuration.getAccessLogFormatString();
-        this.accessLogFilePattern = configuration.getAccessLogFilePattern();
-        this.basicAuthentication = configuration.getBasicAuthentication();
-        this.healthPath = configuration.getHealthPath();
-        this.resourcePath = configuration.getResourcePath();
-        this.ioThreads = configuration.getIoThreads();
-        this.workerThreads = configuration.getWorkerThreads();
-        this.welcomeFiles = configuration.getWelcomeFiles();
-        this.supportedFileExtensions = configuration.getSupportedFileExtensions();
+    public WebServerConfiguration(IWebServerConfiguration webServerConfiguration) {
+        this.webserverName = webServerConfiguration.getWebserverName();
+        this.hostname = webServerConfiguration.getHostname();
+        this.port = webServerConfiguration.getPort();
+        this.securePort = webServerConfiguration.getSecurePort();
+        this.verboseLevel = webServerConfiguration.getVerboseLevel();
+        this.accessLogFormatString = webServerConfiguration.getAccessLogFormatString();
+        this.accessLogFilePattern = webServerConfiguration.getAccessLogFilePattern();
+        this.basicAuthentication = webServerConfiguration.getBasicAuthentication();
+        this.healthPath = webServerConfiguration.getHealthPath();
+        this.ioThreads = webServerConfiguration.getIoThreads();
+        this.workerThreads = webServerConfiguration.getWorkerThreads();
+        this.resourcePath = webServerConfiguration.getResourcePath();
+        this.sslServerConfiguration = webServerConfiguration.getSSLServerConfiguration();
+        this.resourceServerConfiguration = new ResourceServerConfiguration(webServerConfiguration.getResourceServerConfiguration());
+        this.proxyServerConfiguration = new ProxyServerConfiguration(webServerConfiguration.getProxyServerConfiguration());
     }
 
     
@@ -150,7 +145,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
      * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getPort()
      */
     @Override
-    public int getPort() {
+    public Integer getPort() {
         return port;
     }
 
@@ -172,102 +167,24 @@ public class WebServerConfiguration implements IWebServerConfiguration {
 
 
     /**
-     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getDirectory()
+     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getSecurePort()
      */
     @Override
-    public String getDirectory() {
-        return directory;
+    public Integer getSecurePort() {
+        return securePort;
     }
 
     
     /**
-     * Set the directory
+     * Set the secure port
      *
-     * @param directory the directory
+     * @param securePort the secure port
      * @return the WebServerConfiguration
      */
-    public WebServerConfiguration setDirectory(String directory) {
-        if (directory != null) {
-            LOG.debug("Assign property [directory] = [" + directory + "] from CLI.");
-            setDirectory(directory, Boolean.FALSE);
-        }
-        
-        return this;
-    }
-
-    
-    /**
-     * Set the directory
-     *
-     * @param directory the directory
-     * @param readFromClasspath the directory should be read from the classpath
-     * @return the WebServerConfiguration
-     */
-    public WebServerConfiguration setDirectory(String directory, Boolean readFromClasspath) {
-        LOG.debug("Set directory: [" + directory + "], readFromClasspath: [" + readFromClasspath + END_VALUE);
-        
-        if (directory != null) {
-            this.directory = directory.trim();
-
-            if ("%HOME%".equals(directory) || "$HOME".equals(directory)) {
-                this.directory = USER_HOME;
-            }
-        }
-        
-        if (readFromClasspath != null) {
-            this.readFromClasspath = readFromClasspath.booleanValue();
-        }
-
-        LOG.debug("Set isLocalDirectory: " + this.directory.startsWith(ResourceHandler.SLASH) + ResourceHandler.SLASH
-                + this.directory.startsWith("\\") + ResourceHandler.SLASH
-                + (this.directory.length() > 2 && this.directory.substring(1).startsWith(":")));
-        this.isLocalDirectory = !(this.readFromClasspath 
-                || this.directory.startsWith(ResourceHandler.SLASH) 
-                || this.directory.startsWith("\\") 
-                || (this.directory.length() > 2 && this.directory.substring(1).startsWith(":")));
-
-        return this;
-    }
-
-
-    /**
-     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#readFromClasspath()
-     */
-    @Override
-    public boolean readFromClasspath() {
-        return readFromClasspath;
-    }
-
-    
-    /**
-     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#isLocalDirectory()
-     */
-    @Override
-    public boolean isLocalDirectory() {
-        return isLocalDirectory;
-    }
-
-    
-    
-    /**
-     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#isDirectoryListingEnabled()
-     */
-    @Override
-    public boolean isDirectoryListingEnabled() {
-        return directoryListingEnabled;
-    }
-
-
-    /**
-     * Define if the directory listing is enabled  
-     *
-     * @param directoryListingEnabled turn true if it is enabled
-     * @return the WebServerConfiguration
-     */
-    public WebServerConfiguration setDirectoryListingEnabled(Boolean directoryListingEnabled) {
-        if (directoryListingEnabled != null) {
-            LOG.debug("Set directoryListingEnabled: [" + directoryListingEnabled + END_VALUE);
-            this.directoryListingEnabled = directoryListingEnabled.booleanValue();
+    public WebServerConfiguration setSecurePort(Integer securePort) {
+        if (securePort != null) {
+            LOG.debug("Set secure port: [" + securePort + "].  ");            
+            this.securePort = securePort.intValue();
         }
         
         return this;
@@ -422,34 +339,6 @@ public class WebServerConfiguration implements IWebServerConfiguration {
 
 
     /**
-     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getResourcePath()
-     */
-    @Override
-    public String getResourcePath() {
-        return resourcePath;
-    }
-
-    
-    /**
-     * Set the resource path 
-     *
-     * @param resourcePath the resource path
-     * @return the WebServerConfiguration
-     */
-    public WebServerConfiguration setResourcePath(String resourcePath) {
-        if (resourcePath != null && !resourcePath.isBlank()) {
-            LOG.debug("Set resourcePath: [" + resourcePath + END_VALUE);            
-            this.resourcePath = resourcePath;
-            
-            if (resourcePath.endsWith(ResourceHandler.SLASH)) {
-                this.resourcePath = resourcePath.substring(0, resourcePath.length() - 1);
-            }
-        }
-        return this;
-    }
-
-    
-    /**
      * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getIoThreads()
      */
     @Override
@@ -499,96 +388,72 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         }
         return this;
     }
-
     
+
     /**
-     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getWorkerThreads()
+     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getResourcePath()
      */
     @Override
-    public String[] getWelcomeFiles() {
-        return welcomeFiles;
+    public String getResourcePath() {
+        return resourcePath;
     }
 
     
     /**
-     * Set the welcome files
+     * Set the resource path 
      *
-     * @param welcomeFiles the welcome files
-     * @return the WebServerConfiguration
+     * @param resourcePath the resource path
+     * @return the ResourceServerConfiguration
      */
-    public WebServerConfiguration setWelcomeFiles(String welcomeFiles) {
-        if (welcomeFiles != null) {
-            setWelcomeFiles(parseStringArray(welcomeFiles));
-        }
-        return this;
-    }
-
-    
-    /**
-     * Set the welcome files
-     *
-     * @param welcomeFiles the welcome files
-     * @return the WebServerConfiguration
-     */
-    public WebServerConfiguration setWelcomeFiles(String[] welcomeFiles) {
-        if (welcomeFiles != null) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Set welcomeFiles: [" + formatArrayAsString(welcomeFiles) + END_VALUE);            
-            }
+    public WebServerConfiguration setResourcePath(String resourcePath) {
+        if (resourcePath != null && !resourcePath.isBlank()) {
+            LOG.debug("Set resourcePath: [" + resourcePath + END_VALUE);            
+            this.resourcePath = resourcePath;
             
-            this.welcomeFiles = welcomeFiles;
+            if (resourcePath.endsWith(RoutingHandler.SLASH)) {
+                this.resourcePath = resourcePath.substring(0, resourcePath.length() - 1);
+            }
         }
         return this;
     }
 
 
     /**
-     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getSupportedFileExtensions()
+     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getSSLServerConfiguration()
      */
     @Override
-    public String[] getSupportedFileExtensions() {
-        return this.supportedFileExtensions;
+    public SSLServerConfiguration getSSLServerConfiguration() {
+        return sslServerConfiguration;
     }
 
     
     /**
-     * Set the supported file extensions
-     *
-     * @param supportedFileExtensions the supported file extensions
-     * @return the WebServerConfiguration
+     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getResourceServerConfiguration()
      */
-    public WebServerConfiguration setSupportedFileExtensions(String supportedFileExtensions) {
-        if (supportedFileExtensions != null) {
-            setSupportedFileExtensions(parseStringArray(supportedFileExtensions));
-        }
-        return this;
+    @Override
+    public ResourceServerConfiguration getResourceServerConfiguration() {
+        return resourceServerConfiguration;
     }
 
     
     /**
-     * Set the supported file extensions
-     *
-     * @param supportedFileExtensions the supported file extensions
-     * @return the WebServerConfiguration
+     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#getProxyServerConfiguration()
      */
-    public WebServerConfiguration setSupportedFileExtensions(String[] supportedFileExtensions) {
-        if (supportedFileExtensions != null) {
-            for (int i = 0; i < supportedFileExtensions.length; i++) {
-                if (supportedFileExtensions[i] != null && !supportedFileExtensions[i].startsWith(DOT)) {
-                    supportedFileExtensions[i] = DOT + supportedFileExtensions[i];
-                }
-            }
-            
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Set supportedFileExtensions: [" + formatArrayAsString(supportedFileExtensions) + END_VALUE);            
-            }
-            
-            this.supportedFileExtensions = supportedFileExtensions;
-        }
-        return this;
+    @Override
+    public ProxyServerConfiguration getProxyServerConfiguration() {
+        return proxyServerConfiguration;
     }
 
 
+    /**
+     * @see com.github.toolarium.jwebserver.config.IWebServerConfiguration#isProxyServer()
+     */
+    @Override
+    public boolean isProxyServer() {
+        return proxyServerConfiguration != null && proxyServerConfiguration.getProxyHostNames() != null && proxyServerConfiguration.getProxyHostNames().length > 0 && !proxyServerConfiguration.getProxyHostNames()[0].isBlank();
+    }
+
+    
     /**
      * Read the configuration from the classpath
      * 
@@ -602,17 +467,11 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         
         setWebserverName(readProperty(properties, "webserverName", webserverName, false));
         setHostname(readProperty(properties, "hostname", hostname, false));
-        setPort(readProperty(properties, "port", port, false));
-        setDirectory(readProperty(properties, "directory", directory, false), readProperty(properties, "readFromClasspath", readFromClasspath, false));
-        if (!readFromClasspath()) {
-            setDirectoryListingEnabled(readProperty(properties, "directoryListingEnabled", directoryListingEnabled, false));
-        } else {
-            setDirectoryListingEnabled(Boolean.FALSE);
-        }
+        setPort(readProperty(properties, "port", port, true));
+        setSecurePort(readProperty(properties, "securePort", securePort, true));
 
         setIoThreads(readProperty(properties, "ioThreads", ioThreads, false));
         setWorkerThreads(readProperty(properties, "workerThreads", workerThreads, false));
-        setWelcomeFiles(readProperty(properties, "welcomeFiles", formatArrayAsString(welcomeFiles), false));
         
         setVerboseLevel(readProperty(properties, "verboseLevel", verboseLevel, false));
         setAccessLogFormatString(readProperty(properties, "accessLogFormatString", accessLogFormatString, false));
@@ -620,54 +479,47 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         
         setBasicAuthentication(readProperty(properties, "basicAuthentication", basicAuthentication, true));
         setHealthPath(readProperty(properties, "healthPath", healthPath, true));
-        setResourcePath(readProperty(properties, "resourcePath", resourcePath, false));
+        setResourcePath(readProperty(properties, "resourcePath", getResourcePath(), false));
 
-        setSupportedFileExtensions(readProperty(properties, "supportedFileExtensions", formatArrayAsString(supportedFileExtensions), false));
+        sslServerConfiguration.setTrustAnyCertificate(readProperty(properties, "trustAnyCertificate", sslServerConfiguration.trustAnyCertificate(), true));
+        sslServerConfiguration.setTrustKeyStoreFile(readProperty(properties, "trustKeyStoreFile", sslServerConfiguration.getTrustKeyStoreFile(), true));
+        sslServerConfiguration.setKeyStoreFile(readProperty(properties, "keyStoreFile", sslServerConfiguration.getKeyStoreFile(), true));
+        sslServerConfiguration.setKeyStoreAlias(readProperty(properties, "keyStoreAlias", sslServerConfiguration.getKeyStoreAlias(), true));
+        sslServerConfiguration.setKeyStorePassword(readProperty(properties, "keyStorePassword", sslServerConfiguration.getKeyStorePassword(), true));
+        sslServerConfiguration.setKeyStoreType(readProperty(properties, "keysStoreType", sslServerConfiguration.getKeyStoreType(), true));
+
+        resourceServerConfiguration.setDirectory(readProperty(properties, "directory", resourceServerConfiguration.getDirectory(), false), readProperty(properties, "readFromClasspath", resourceServerConfiguration.readFromClasspath(), false));
+        if (!resourceServerConfiguration.readFromClasspath()) {
+            resourceServerConfiguration.setDirectoryListingEnabled(readProperty(properties, "directoryListingEnabled", resourceServerConfiguration.isDirectoryListingEnabled(), false));
+        } else {
+            resourceServerConfiguration.setDirectoryListingEnabled(Boolean.FALSE);
+        }
+        resourceServerConfiguration.setWelcomeFiles(readProperty(properties, "welcomeFiles", ConfigurationUtil.getInstance().formatArrayAsString(resourceServerConfiguration.getWelcomeFiles()), false));
+        resourceServerConfiguration.setSupportedFileExtensions(readProperty(properties, "supportedFileExtensions", ConfigurationUtil.getInstance().formatArrayAsString(resourceServerConfiguration.getSupportedFileExtensions()), false));
+        
+        proxyServerConfiguration.setRewriteHostHeader(readProperty(properties, "rewriteHostHeader", proxyServerConfiguration.rewriteHostHeader(), true));
+        proxyServerConfiguration.setReuseXForwarded(readProperty(properties, "reuseXForwarded", proxyServerConfiguration.reuseXForwarded(), true));
+        proxyServerConfiguration.setMaxRequestTime(readProperty(properties, "maxRequestTime", proxyServerConfiguration.getMaxRequestTime(), true));
+        proxyServerConfiguration.setConnectionsPerThread(readProperty(properties, "connectionsPerThread", proxyServerConfiguration.getConnectionsPerThread(), true));
+        proxyServerConfiguration.setProxyHostNames(readProperty(properties, "proxy", ConfigurationUtil.getInstance().formatArrayAsString(proxyServerConfiguration.getProxyHostNames()), true));
         return this;
     }
 
     
     /**
-     * Parse the string array
-     *
-     * @param stringArray the string array
-     * @return the parsed string
+     * @see java.lang.Object#toString()
      */
-    public String[] parseStringArray(String stringArray) {
-        if (stringArray == null || stringArray.isBlank()) {
-            return null;
-        }
-            
-        String[] stringArrayList = stringArray.split(",");
-        for (int i = 0; i < stringArrayList.length; i++) {
-            stringArrayList[i] = stringArrayList[i].trim();
-        }
-        return stringArrayList;
+    @Override
+    public String toString() {
+        return "WebServerConfiguration [webserverName=" + webserverName + ", hostname=" + hostname + ", port=" + port + ", securePort=" + securePort
+                + ", verboseLevel=" + verboseLevel + ", accessLogFormatString=" + accessLogFormatString
+                + ", accessLogFilePattern=" + accessLogFilePattern + ", basicAuthentication=" + basicAuthentication
+                + ", healthPath=" + healthPath + ", ioThreads=" + ioThreads + ", workerThreads=" + workerThreads
+                + ", resourcePath=" + resourcePath + ", resourceServerConfiguration=" + resourceServerConfiguration
+                + ", proxyServerConfiguration=" + proxyServerConfiguration + "]";
     }
 
-    
-    /**
-     * Format an array as string
-     *
-     * @param stringArray the welcome files
-     * @return the formated string
-     */
-    public String formatArrayAsString(String[] stringArray) {
-        if (stringArray == null) {
-            return null;
-        }
-        
-        StringBuilder formatString = new StringBuilder();
-        for (String welcomeFile : stringArray) {
-            if (!formatString.toString().isEmpty()) {
-                formatString.append(", ");
-            }
-            formatString.append(welcomeFile);
-        }
-        return formatString.toString();
-    }
 
-    
     /**
      * Read properties from classpath
      *
@@ -677,7 +529,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         Properties properties = null;
         
         try {
-            try (InputStream stream = this.getClass().getResourceAsStream(ResourceHandler.SLASH + JWEBSERVER_PROPERTIES)) {
+            try (InputStream stream = this.getClass().getResourceAsStream(RoutingHandler.SLASH + JWEBSERVER_PROPERTIES)) {
                 int countEntries = 0;
                 if (stream != null) {
                     LOG.debug("Found " + JWEBSERVER_PROPERTIES + "...");
@@ -818,6 +670,34 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         
         try {
             return VerboseLevel.valueOf(result);
+        } catch (Exception e) {
+            LOG.warn("Invalid value [" + result + "] for attribute [" + name + "], keep default value [" + defaultValue + END_VALUE);
+            return defaultValue;
+        }
+    }
+
+
+    /**
+     * Read secured value property
+     *
+     * @param properties the properties
+     * @param name the name
+     * @param defaultValue the default value
+     * @param allowEmptyValue true to allow empty values otherwise in case of an empty value the default value will be taken
+     * @return the result
+     */
+    private ISecuredValue<String> readProperty(Properties properties, String name, ISecuredValue<String> defaultValue, boolean allowEmptyValue) {
+        String result = readProperty(properties, name, "" + defaultValue, allowEmptyValue);
+        if ((result == null || result.isBlank())) {
+            if (allowEmptyValue) {
+                return null;
+            } else {
+                return defaultValue;
+            }
+        }
+        
+        try {
+            return new SecuredValue<String>(result);
         } catch (Exception e) {
             LOG.warn("Invalid value [" + result + "] for attribute [" + name + "], keep default value [" + defaultValue + END_VALUE);
             return defaultValue;

@@ -10,7 +10,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.github.toolarium.jwebserver.config.WebServerConfiguration;
-import com.github.toolarium.jwebserver.handler.resource.ResourceHandler;
+import com.github.toolarium.jwebserver.handler.routing.RoutingHandler;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,7 @@ public class JWebServerClasspathAccessTest extends AbstractJWebserverResourceAcc
      */
     @Override
     protected void setDirectory(WebServerConfiguration configuration) {
-        configuration.setDirectory("", Boolean.TRUE);
+        configuration.getResourceServerConfiguration().setDirectory("", Boolean.TRUE);
     }
 
     
@@ -42,21 +42,21 @@ public class JWebServerClasspathAccessTest extends AbstractJWebserverResourceAcc
         WebServerConfiguration configuration = newConfiguration();
         setDirectory(configuration);
         //configuration.setResourcePath("");
-        configuration.setWelcomeFiles("index.html, index.htm, index.json");
+        configuration.getResourceServerConfiguration().setWelcomeFiles("index.html, index.htm, index.json");
         run(configuration);
         
-        assertEquals(ResourceHandler.SLASH, configuration.getResourcePath());
+        assertEquals(RoutingHandler.SLASH, configuration.getResourcePath());
         RestAssured.port = configuration.getPort();
 
-        given().get(ResourceHandler.SLASH + MYPATH).body();
-        given().get(ResourceHandler.SLASH + MYPATH).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
-        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
-        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH).then().statusCode(200);
-        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
-        given().get(MYPATH + ResourceHandler.SLASH + INDEX_JSON).then().statusCode(200);
-        given().get(ResourceHandler.SLASH + MYPATH + ResourceHandler.SLASH + SUBPATH).then().log().all().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
-        given().get(ResourceHandler.SLASH + MYPATH  + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
-        given().get(ResourceHandler.SLASH + MYPATH  + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH + INDEX_JSON).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
-        given().get(MYPATH + ResourceHandler.SLASH + SUBPATH + ResourceHandler.SLASH + INDEX_JSON).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
+        given().get(RoutingHandler.SLASH + MYPATH).body();
+        given().get(RoutingHandler.SLASH + MYPATH).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
+        given().get(RoutingHandler.SLASH + MYPATH + RoutingHandler.SLASH).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
+        given().get(RoutingHandler.SLASH + MYPATH + RoutingHandler.SLASH).then().statusCode(200);
+        given().get(RoutingHandler.SLASH + MYPATH + RoutingHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(MYPATH + RoutingHandler.SLASH + INDEX_JSON).then().statusCode(200);
+        given().get(RoutingHandler.SLASH + MYPATH + RoutingHandler.SLASH + SUBPATH).then().log().all().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
+        given().get(RoutingHandler.SLASH + MYPATH  + RoutingHandler.SLASH + SUBPATH + RoutingHandler.SLASH).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
+        given().get(RoutingHandler.SLASH + MYPATH  + RoutingHandler.SLASH + SUBPATH + RoutingHandler.SLASH + INDEX_JSON).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
+        given().get(MYPATH + RoutingHandler.SLASH + SUBPATH + RoutingHandler.SLASH + INDEX_JSON).then().log().ifValidationFails().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
     }
 }

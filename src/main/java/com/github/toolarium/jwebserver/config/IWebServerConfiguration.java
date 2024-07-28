@@ -5,9 +5,8 @@
  */
 package com.github.toolarium.jwebserver.config;
 
-
-
 import com.github.toolarium.jwebserver.logger.VerboseLevel;
+
 
 /**
  * Defines the webserver configuration interface
@@ -37,39 +36,15 @@ public interface IWebServerConfiguration {
      *
      * @return the port
      */
-    int getPort();
+    Integer getPort();
 
     
     /**
-     * Get the directory
+     * Get the secure port
      *
-     * @return the directory
+     * @return the secure port
      */
-    String getDirectory();
-
-    
-    /**
-     * Define if the directory is local  
-     *
-     * @return true if the directory is local
-     */
-    boolean isLocalDirectory();
-
-    
-    /**
-     * Define if the directory listing is enabled  
-     *
-     * @return true if it is enabled
-     */
-    boolean isDirectoryListingEnabled();
-
-    
-    /**
-     * Define if the directory should be read from the classpath  
-     *
-     * @return true if the directory should be read from the classpath
-     */
-    boolean readFromClasspath();
+    Integer getSecurePort();
 
     
     /**
@@ -174,14 +149,6 @@ public interface IWebServerConfiguration {
      * @return the health path
      */
     String getHealthPath();
-
-
-    /**
-     * Get the resource path  
-     *
-     * @return the resource path
-     */
-    String getResourcePath();
     
 
     /**
@@ -198,20 +165,44 @@ public interface IWebServerConfiguration {
      * @return the number of working threads
      */
     int getWorkerThreads();
+    
+    
+    /**
+     * Get the resource path  
+     *
+     * @return the resource path
+     */
+    String getResourcePath();
 
     
     /**
-     * Set the welcome files
+     * Get the ssl server configuration
      *
-     * @return the welcome files
+     * @return the ssl server configuration
      */
-    String[] getWelcomeFiles();
-
-
+    SSLServerConfiguration getSSLServerConfiguration();
+    
+    
     /**
-     * Set the supported file extensions
+     * Get the resource server configuration
      *
-     * @return the supported file extensions
+     * @return the resource server configuration
      */
-    String[] getSupportedFileExtensions();
+    ResourceServerConfiguration getResourceServerConfiguration();
+    
+    
+    /**
+     * Get the proxy server configuration
+     *
+     * @return the proxy server configuration
+     */
+    ProxyServerConfiguration getProxyServerConfiguration();
+    
+    
+    /**
+     * True if it is a proxy server
+     *
+     * @return true if it is a proxy server
+     */
+    boolean isProxyServer();
 }

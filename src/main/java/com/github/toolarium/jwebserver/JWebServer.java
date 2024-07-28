@@ -8,14 +8,16 @@ package com.github.toolarium.jwebserver;
 import com.github.toolarium.jwebserver.config.IWebServerConfiguration;
 import com.github.toolarium.jwebserver.config.WebServerConfiguration;
 import com.github.toolarium.jwebserver.handler.health.HealthHttpHandler;
-import com.github.toolarium.jwebserver.handler.resource.ResourceHandler;
+import com.github.toolarium.jwebserver.handler.routing.RoutingHandler;
 import com.github.toolarium.jwebserver.logger.LifecycleLogger;
 import com.github.toolarium.jwebserver.logger.VerboseLevel;
 import com.github.toolarium.jwebserver.logger.access.AccessLogHttpHandler;
 import com.github.toolarium.jwebserver.logger.logback.LogbackUtil;
+import com.github.toolarium.jwebserver.util.ConfigurationUtil;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
-import io.undertow.server.RoutingHandler;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
 import org.fusesource.jansi.AnsiConsole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +39,8 @@ public class JWebServer implements Runnable {
     private String hostname;
     @Option(names = { "-p", "--port" }, paramLabel = "port", description = "The port, by default 8080.")
     private Integer port;
-    @Option(names = { "-d", "--directory" }, paramLabel = "directory", description = "The directory, by default working path.")
-    private String directory;
-    @Option(names = { "-l", "--listing" }, paramLabel = "listing",  description = "Enable directory listing.")
-    private Boolean directoryListingEnabled;
+    @Option(names = { "-s", "--securePort" }, paramLabel = "securePort", description = "The secure port.")
+    private Integer securePort;
     @Option(names = { "--resourcePath" }, paramLabel = "resourcePath", description = "The resource path, by default /.")
     private String resourcePath;
     @Option(names = { "--healthPath" }, paramLabel = "healthPath", defaultValue = "/q/health", description = "The health path, by default /q/health.")
@@ -51,18 +51,39 @@ public class JWebServer implements Runnable {
     private Integer ioThreads;
     @Option(names = { "--workerThreads" }, paramLabel = "workerThreads", description = "The number of worker threads.")
     private Integer workerThreads;
-    @Option(names = { "--welcomeFiles" }, paramLabel = "welcomeFiles", description = "The welcome files, by default index.html, index.htm.")
-    private String welcomeFiles;
     @Option(names = { "--name" }, paramLabel = "webserverName", defaultValue = "", description = "The webserver name.")
     private String webserverName;    
-    @Option(names = { "--verbose" }, paramLabel = "verboseLevel", defaultValue = "INFO", description = "Specify the verbose level: (${COMPLETION-CANDIDATES}), by default INFO.")
-    private VerboseLevel verboseLevel;
-    @Option(names = { "-v", "--version" }, versionHelp = true, description = "Display version info")
-    private boolean versionInfoRequested;
     @Option(names = { "--accessLogFormat" }, paramLabel = "accessLogFormat", description = "Defines the access log format, default: combined.")
     private String accessLogFormatString;
     @Option(names = { "--accessLogFilePattern" }, paramLabel = "accessLogFilePattern", description = "Defines the access log file pattern, default: logs/access-%%d{yyyy-MM-dd}.log.gz.")
     private String accessLogFilePattern;
+
+    @Option(names = { "-d", "--directory" }, paramLabel = "directory", description = "The directory, by default working path.")
+    private String directory;
+    @Option(names = { "-l", "--listing" }, paramLabel = "listing",  description = "Enable directory listing.")
+    private Boolean directoryListingEnabled;
+    @Option(names = { "--welcomeFiles" }, paramLabel = "welcomeFiles", description = "The welcome files, by default index.html, index.htm.")
+    private String welcomeFiles;
+    
+    @Option(names = { "--trustAll" }, paramLabel = "trustAnyCertificate", description = "Define to trust any certificate, default false")
+    private Boolean trustAnyCertificate;
+    
+    // proxy
+    @Option(names = { "--proxy" }, paramLabel = "proxyHost", description = "Defines the comma-separated url list in which this instance acts as a proxy.")
+    private String proxyHostNameList;
+    //@Option(names = { "--rewriteHostHeader" }, paramLabel = "rewriteHostHeader", description = "Defines if the host header should be re written, default true")
+    //private Boolean rewriteHostHeader;
+    //@Option(names = { "--reuseXForwarded" }, paramLabel = "reuseXForwarded", description = "Defines if the X-Forwarded headers should be re written, default true")
+    //private Boolean reuseXForwarded;
+    @Option(names = { "--maxRequestTime" }, paramLabel = "maxRequestTime", description = "Defines the max request time, default 30000")
+    private Integer maxRequestTime;
+    @Option(names = { "--connectionsPerThread" }, paramLabel = "connectionsPerThread", description = "Defines the connections per thread, default 20.")
+    private Integer connectionsPerThread;
+    
+    @Option(names = { "--verbose" }, paramLabel = "verboseLevel", defaultValue = "INFO", description = "Specify the verbose level: (${COMPLETION-CANDIDATES}), by default INFO.")
+    private VerboseLevel verboseLevel;
+    @Option(names = { "-v", "--version" }, versionHelp = true, description = "Display version info")
+    private boolean versionInfoRequested;
     @Option(names = {"-h", "--help" }, usageHelp = true, description = "Display this help message")
     private boolean usageHelpRequested;
 
@@ -70,7 +91,6 @@ public class JWebServer implements Runnable {
     private LifecycleLogger lifecycleLogger;
     private transient Undertow server;
     private boolean hasError;
-
     
 
     /**
@@ -91,16 +111,38 @@ public class JWebServer implements Runnable {
      */
     public IWebServerConfiguration getConfiguration() {
         if (configuration == null) {
-            setConfiguration(new WebServerConfiguration()
+            if (port == null && securePort == null) {
+                port = 8080;
+            }
+            
+            WebServerConfiguration webServerConfiguration = new WebServerConfiguration()
                     .readProperties()
                     .setWebserverName(webserverName)
-                    .setHostname(hostname).setPort(port)
-                    .setDirectory(directory).setDirectoryListingEnabled(directoryListingEnabled).setResourcePath(resourcePath)
+                    .setHostname(hostname).setPort(port).setSecurePort(securePort)
+                    .setResourcePath(resourcePath)
                     .setBasicAuthentication(basicAuth)
                     .setHealthPath(healthPath)
                     .setIoThreads(ioThreads).setWorkerThreads(workerThreads)
-                    .setWelcomeFiles(welcomeFiles)
-                    .setVerboseLevel(verboseLevel).setAccessLogFilePattern(accessLogFilePattern).setAccessLogFormatString(accessLogFormatString));
+                    .setVerboseLevel(verboseLevel).setAccessLogFilePattern(accessLogFilePattern).setAccessLogFormatString(accessLogFormatString);
+
+            // SSL configuration
+            webServerConfiguration.getSSLServerConfiguration().setTrustAnyCertificate(trustAnyCertificate);
+            
+            // resource configuration
+            webServerConfiguration.getResourceServerConfiguration()
+                    .setDirectory(directory)
+                    .setDirectoryListingEnabled(directoryListingEnabled)
+                    .setWelcomeFiles(welcomeFiles);
+
+            // proxy configuration
+            webServerConfiguration.getProxyServerConfiguration()
+                    //.setRewriteHostHeader(rewriteHostHeader)
+                    //.setReuseXForwarded(reuseXForwarded)
+                    .setMaxRequestTime(maxRequestTime)
+                    .setConnectionsPerThread(connectionsPerThread)
+                    .setProxyHostNames(ConfigurationUtil.getInstance().parseStringArray(proxyHostNameList));
+
+            setConfiguration(webServerConfiguration);
         }
         
         return configuration;
@@ -110,10 +152,10 @@ public class JWebServer implements Runnable {
     /**
      * Get the configuration
      *
-     * @param configuration the configuration
+     * @param webServerConfiguration the web server configuration
      */
-    public void setConfiguration(IWebServerConfiguration configuration) {
-        this.configuration = new WebServerConfiguration(configuration);
+    public void setConfiguration(IWebServerConfiguration webServerConfiguration) {
+        this.configuration = new WebServerConfiguration(webServerConfiguration);
     }
 
     
@@ -208,35 +250,62 @@ public class JWebServer implements Runnable {
             LogbackUtil.getInstance().enableVerbose();
         }
         
-        IWebServerConfiguration configuration = getConfiguration();
+        IWebServerConfiguration webServerConfiguration = getConfiguration();
         
         try {
-            LOG.info("Start server [" + configuration.getHostname() + "] on port [" + configuration.getPort() + "]...");
+            LOG.info("Start server [" + webServerConfiguration.getHostname() + "] on port [" + webServerConfiguration.getPort() + "]...");
 
             // create routing
-            RoutingHandler routingHandler = Handlers.routing();
+            io.undertow.server.RoutingHandler routingHandler = Handlers.routing();
             // TODO: routingHandler.setFallbackHandler(RoutingHandlers::notFoundHandler);
             
             // add routes
-            HealthHttpHandler.addHandler(configuration, routingHandler);
-            ResourceHandler.addHandler(configuration, routingHandler);
+            HealthHttpHandler.addHandler(webServerConfiguration, routingHandler);
+            RoutingHandler.addHandler(webServerConfiguration, routingHandler);
+            
+            // create ssl context with added self-signed certificate in trust store for a SSL client
             
             // create simple server
-            server = Undertow.builder()
-                    .setIoThreads(configuration.getIoThreads()).setWorkerThreads(configuration.getWorkerThreads())
-                    .addHttpListener(configuration.getPort(), configuration.getHostname(), AccessLogHttpHandler.addHandler(configuration, routingHandler))
-                   .build();
+            Undertow.Builder builder = Undertow.builder()
+                    .setIoThreads(webServerConfiguration.getIoThreads()).setWorkerThreads(webServerConfiguration.getWorkerThreads());
+            
+            // set port
+            if (webServerConfiguration.getPort() != null) {
+                builder.addHttpListener(webServerConfiguration.getPort(), webServerConfiguration.getHostname(), AccessLogHttpHandler.addHandler(webServerConfiguration, routingHandler));
+            }
+            
+            // set ssl port
+            if (webServerConfiguration.getSecurePort() != null) {
+                try {
+                    SSLContext sslContext = webServerConfiguration.getSSLServerConfiguration().getSSLContext();
+                    HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+                    builder.addHttpsListener(webServerConfiguration.getSecurePort(), webServerConfiguration.getHostname(), sslContext, AccessLogHttpHandler.addHandler(webServerConfiguration, routingHandler));
+                } catch (Exception e) {
+                    if (!VerboseLevel.NONE.equals(verboseLevel)) {
+                        lifecycleLogger.printServerStartup(webServerConfiguration, null);
+                    }
+                    LOG.warn("Could not get SSL context [" + webServerConfiguration.getHostname() + "] on port [" + webServerConfiguration.getSecurePort() + "]\n" + lifecycleLogger.preapreThrowable(e));
+                }
+            }
+            
+            server = builder.build();
             server.start();
             
             if (!VerboseLevel.NONE.equals(verboseLevel)) {
-                lifecycleLogger.printServerStartup(configuration, server.getListenerInfo());
+                lifecycleLogger.printServerStartup(webServerConfiguration, server.getListenerInfo());
             }
         } catch (RuntimeException ex) {
             hasError = true;
             if (!VerboseLevel.NONE.equals(verboseLevel)) {
-                lifecycleLogger.printServerStartup(configuration, null);
+                lifecycleLogger.printServerStartup(webServerConfiguration, null);
             }
-            LOG.warn("Could not start server [" + configuration.getHostname() + "] on port [" + configuration.getPort() + "]\n" + lifecycleLogger.preapreThrowable(ex));
+            int port;
+            if (webServerConfiguration.getPort() != null) {
+                port = webServerConfiguration.getPort();
+            } else {
+                port = webServerConfiguration.getSecurePort();
+            }
+            LOG.warn("Could not start server [" + webServerConfiguration.getHostname() + "] on port [" + port + "]\n" + lifecycleLogger.preapreThrowable(ex));
         }
     }
 }

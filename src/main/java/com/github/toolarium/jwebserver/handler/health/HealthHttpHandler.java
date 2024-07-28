@@ -46,13 +46,13 @@ public final class HealthHttpHandler implements HttpHandler {
     /**
      * Add basic authentication
      *
-     * @param configuration the configuration
+     * @param webServerConfiguration the web server configuration
      * @param routingHandler the routing handler
      * @return the handler
      */
-    public static RoutingHandler addHandler(final IWebServerConfiguration configuration, RoutingHandler routingHandler) {
-        if (configuration.hasHealthCheck()) {
-            routingHandler.get(configuration.getHealthPath(), new HealthHttpHandler());
+    public static RoutingHandler addHandler(final IWebServerConfiguration webServerConfiguration, RoutingHandler routingHandler) {
+        if (webServerConfiguration.hasHealthCheck()) {
+            routingHandler.get(webServerConfiguration.getHealthPath(), new HealthHttpHandler());
         }
         return routingHandler;
     }

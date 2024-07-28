@@ -3,8 +3,9 @@
  *
  * Copyright by toolarium, all rights reserved.
  */
-package com.github.toolarium.jwebserver.handler.resource;
+package com.github.toolarium.jwebserver.handler.routing.resource;
 
+import com.github.toolarium.jwebserver.config.IResourceServerConfiguration;
 import com.github.toolarium.jwebserver.config.IWebServerConfiguration;
 import io.undertow.server.handlers.resource.Resource;
 import java.nio.file.Path;
@@ -19,19 +20,19 @@ import org.slf4j.LoggerFactory;
  */
 public class PathResourceManager extends io.undertow.server.handlers.resource.PathResourceManager {
     private static final Logger LOG = LoggerFactory.getLogger(PathResourceManager.class);
-    private final IWebServerConfiguration configuration;
+    private final IResourceServerConfiguration configuration;
 
     
     /**
      * Constructor for PathResourceManager
      *
-     * @param configuration the configuration
+     * @param webServerConfiguration the web server configuration
      * @param base the base
      * @param transferMinSize the transfer min size
      */
-    public PathResourceManager(final IWebServerConfiguration configuration, final Path base, long transferMinSize) {
+    public PathResourceManager(final IWebServerConfiguration webServerConfiguration, final Path base, long transferMinSize) {
         super(base, transferMinSize);
-        this.configuration = configuration;
+        this.configuration = webServerConfiguration.getResourceServerConfiguration();
     }
 
 

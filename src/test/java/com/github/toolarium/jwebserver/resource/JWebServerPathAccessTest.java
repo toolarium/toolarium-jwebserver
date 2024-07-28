@@ -20,6 +20,6 @@ public class JWebServerPathAccessTest extends AbstractJWebserverResourceAccessTe
      */
     @Override
     protected void setDirectory(WebServerConfiguration configuration) {
-        configuration.setDirectory("src/test/resources");
+        configuration.getResourceServerConfiguration().setDirectory("src/test/resources");
     }
 }
