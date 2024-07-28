@@ -49,8 +49,8 @@ java -jar toolarium-jwebserver-1.2.0.jar -l
 ### Proxy demo: start first webserver to listen on local directory on secir
 ```
 # start first webserver to listen on local directory on secure port with self-signed certificate
-java -jar toolarium-jwebserver-1.2.0.jar -p 8080 -s 8443 -l
+java -jar toolarium-jwebserver-1.2.0.jar -s 8443 -l
 
 # start proxy to listen on previous started webserver (trustAll because of self-signed certificate)
-java -jar toolarium-jwebserver-1.2.0.jar -p 8081 -s 8441 --trustAll --proxy https://localhost:8443
+java -jar toolarium-jwebserver-1.2.0.jar -s 8444 --trustAll --proxy https://localhost:8443
 ```
