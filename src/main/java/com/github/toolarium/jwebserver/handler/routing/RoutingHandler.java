@@ -56,6 +56,7 @@ public final class RoutingHandler {
         } else {
             io.undertow.server.handlers.resource.ResourceHandler resourceHandler = ResourceHandler.createResourceHandler(webServerConfiguration);
             routinrgHandler.add(Methods.GET, resourcePath + STAR, BasicAuthenticationHttpHandler.addHandler(webServerConfiguration, resourceHandler));
+            routinrgHandler.add(Methods.HEAD, resourcePath + STAR, BasicAuthenticationHttpHandler.addHandler(webServerConfiguration, resourceHandler));
         }
 
         //routinrgHandler.setFallbackHandler(new RedirectHandler(resourcePath));
