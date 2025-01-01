@@ -4,7 +4,8 @@
  * Copyright by toolarium, all rights reserved.
  */
 plugins {
-  id 'com.github.johnrengelman.shadow' version '8.1.0'
+  id 'com.gradleup.shadow' version '8.3.5'
+  //id 'com.github.johnrengelman.shadow' version '8.1.1' --> changed because of java 21
 }
 
 apply from: "https://raw.githubusercontent.com/toolarium/common-gradle-build/master/gradle/common.gradle"
@@ -50,18 +51,17 @@ compileJava {
  * Define project dependencies
  ****************************************************************************************/
 dependencies {
-    // see https://docs.gradle.org/current/userguide/java_library_plugin.html
 
     // undertow web server
-    implementation 'io.undertow:undertow-core:2.3.15.Final'
+    implementation 'io.undertow:undertow-core:2.3.18.Final'
 
     // certificate utils    
-    implementation "com.github.toolarium:toolarium-common:0.8.1"
-    implementation "com.github.toolarium:toolarium-security:1.1.2"
+    implementation "com.github.toolarium:toolarium-common:0.9.1"
+    implementation "com.github.toolarium:toolarium-security:1.1.4"
     
     // security library
-    implementation 'org.bouncycastle:bcprov-jdk18on:1.78.1'
-    implementation 'org.bouncycastle:bcpkix-jdk18on:1.78.1'
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.79'
+    implementation 'org.bouncycastle:bcpkix-jdk18on:1.79'
     
     // CLI
     // https://mvnrepository.com/artifact/org.fusesource.jansi/jansi
@@ -74,5 +74,5 @@ dependencies {
     implementation "ch.qos.logback:logback-classic:${commonGradleLogbackVersion}"
 
     // test
-    testImplementation 'io.rest-assured:rest-assured:5.4.0'
+    testImplementation 'io.rest-assured:rest-assured:5.5.0'
 }
