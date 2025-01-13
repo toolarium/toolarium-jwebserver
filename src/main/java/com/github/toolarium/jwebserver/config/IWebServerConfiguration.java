@@ -57,7 +57,7 @@ public interface IWebServerConfiguration {
     
     /**
      * Get access log format string:
-     * <p>
+     * 
      * <ul>
      * <li><b>%a</b> - Remote IP address
      * <li><b>%A</b> - Local IP address
@@ -81,6 +81,7 @@ public interface IWebServerConfiguration {
      * <li><b>%I</b> - current Request thread name (can compare later with stacktraces)
      * </ul>
      * </p>
+     * 
      * <p>
      * In addition, the caller can specify one of the following aliases for commonly utilized patterns:
      * </p>
@@ -91,9 +92,11 @@ public interface IWebServerConfiguration {
      * <li><b>combinedobf</b> - <code>%o %l %u %t "%r" %s %b "%{i,Referer}" "%{i,User-Agent}"</code>
      * </ul>
      * </p>
+     * 
      * <p>
      * There is also support to write information from the cookie, incoming header, or the session<br>
      * It is modeled after the apache syntax:
+     * </p>
      * <ul>
      * <li><code>%{i,xxx}</code> for incoming headers
      * <li><code>%{o,xxx}</code> for outgoing response headers
@@ -101,7 +104,6 @@ public interface IWebServerConfiguration {
      * <li><code>%{r,xxx}</code> xxx is an attribute in the ServletRequest
      * <li><code>%{s,xxx}</code> xxx is an attribute in the HttpSession
      * </ul>
-     * </p>
      * 
      * @return the accesslog format string
      */
@@ -110,6 +112,7 @@ public interface IWebServerConfiguration {
     
     /**
      * The access log file pattern, e.g. "access-%d{yyyy-MM-dd}.log.gz"
+     * 
      * <p>
      * For more information, please refer to the online manual at
      * http://logback.qos.ch/manual/appenders.html#TimeBasedRollingPolicy</p>

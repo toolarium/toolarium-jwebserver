@@ -28,7 +28,7 @@ public final class ConfigurationUtil {
      *
      * @author patrick
      */
-    private static class HOLDER {
+    private static final class HOLDER {
         static final ConfigurationUtil INSTANCE = new ConfigurationUtil();
     }
 

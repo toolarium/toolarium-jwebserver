@@ -37,7 +37,7 @@ public final class LogbackUtil {
      *
      * @author patrick
      */
-    private static class HOLDER {
+    private static final class HOLDER {
         static final LogbackUtil INSTANCE = new LogbackUtil();
     }
 

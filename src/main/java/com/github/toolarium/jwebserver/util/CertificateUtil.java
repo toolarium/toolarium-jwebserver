@@ -35,7 +35,7 @@ public final class CertificateUtil {
      *
      * @author patrick
      */
-    private static class HOLDER {
+    private static final class HOLDER {
         static final CertificateUtil INSTANCE = new CertificateUtil();
     }
 

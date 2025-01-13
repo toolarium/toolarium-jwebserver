@@ -22,8 +22,8 @@ import org.junit.jupiter.api.Test;
  * @author patrick
  */
 public class JWebServerClasspathAccessTest extends AbstractJWebserverResourceAccessTest {
-    private static final String B = "b";
     private static final String A = "a";
+    private static final String B = "b";
 
 
     /**
