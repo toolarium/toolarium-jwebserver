@@ -44,13 +44,17 @@ public final class ResourceHandler {
                 path = "";
             }
             
-            resourceHandler = Handlers.resource(new com.github.toolarium.jwebserver.handler.routing.resource.ClassPathResourceManager(webServerConfiguration, ResourceHandler.class.getClassLoader(), path));
+            ClassPathResourceManager classResourceManager = new ClassPathResourceManager(webServerConfiguration, ResourceHandler.class.getClassLoader(), path);
+            classResourceManager.setWelcomeFiles(configuration.getWelcomeFiles());
+            resourceHandler = Handlers.resource(classResourceManager);
         } else {
             if (path == null) {
                 path = ".";
             }
             
-            resourceHandler = Handlers.resource(new PathResourceManager(webServerConfiguration, Paths.get(path), 10));
+            PathResourceManager pathResourceManager = new PathResourceManager(webServerConfiguration, Paths.get(path), 10);
+            pathResourceManager.setWelcomeFiles(configuration.getWelcomeFiles());
+            resourceHandler = Handlers.resource(pathResourceManager);
         }
 
         if (webServerConfiguration.getResourceServerConfiguration().getWelcomeFiles() != null) {

@@ -14,7 +14,9 @@ import com.github.toolarium.jwebserver.config.WebServerConfiguration;
 public abstract class AbstractJWebServerTest {
     protected static final String MYPATH = "mypath";
     protected static final String SUBPATH = "subpath";
+    protected static final String ADDITION = "addition";
     protected static final String INDEX_JSON = "index.json";
+    protected static final String MY_JSON = "my.json";
     private static final int PORT_BASE = 20000;
     private static int port = PORT_BASE;
     
