@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [ 1.2.4 ] - 2025-01-14
 ### Changed
-- Added support of hierarchy backward climbing
+- Added support of hierarchy backward climbing.
 ## [ 1.2.3 ] - 2025-01-01
 ### Changed
 - Updated dependencies.
