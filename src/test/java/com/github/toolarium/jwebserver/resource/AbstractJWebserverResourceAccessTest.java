@@ -160,6 +160,11 @@ public abstract class AbstractJWebserverResourceAccessTest extends AbstractJWebS
 
         assertEquals(RoutingHandler.SLASH, configuration.getResourcePath());
         RestAssured.port = configuration.getPort();
+        //String additionPath = RoutingHandler.SLASH + MYPATH + RoutingHandler.SLASH + SUBPATH + RoutingHandler.SLASH + ADDITION + RoutingHandler.SLASH;
+        //given().when().get(additionPath).then().statusCode(403);
+
+        assertEquals(RoutingHandler.SLASH, configuration.getResourcePath());
+        RestAssured.port = configuration.getPort();
         String additionPath = RoutingHandler.SLASH + MYPATH + RoutingHandler.SLASH + SUBPATH + RoutingHandler.SLASH + ADDITION;
         given().when().get(additionPath).then().statusCode(200);
         given().get(additionPath).then().log().all().assertThat().contentType(ContentType.JSON).statusCode(200).body(A, equalTo(B));
