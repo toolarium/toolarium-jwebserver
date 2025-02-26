@@ -30,6 +30,7 @@ public class ResourceServerConfiguration implements IResourceServerConfiguration
     private boolean isLocalDirectory;
     private boolean readFromClasspath;
     private boolean directoryListingEnabled;
+    private boolean resolveParentResourceIfNotFound;
     private String[] welcomeFiles;
     private String[] supportedFileExtensions;
     
@@ -42,6 +43,7 @@ public class ResourceServerConfiguration implements IResourceServerConfiguration
         this.isLocalDirectory = true;
         this.readFromClasspath = false;
         this.directoryListingEnabled = false;
+        this.resolveParentResourceIfNotFound = true; 
         this.welcomeFiles = new String[] {"index.html", "index.htm", "default.html", "default.htm"};
         this.supportedFileExtensions = null;
     }
@@ -57,6 +59,7 @@ public class ResourceServerConfiguration implements IResourceServerConfiguration
         this.isLocalDirectory = configuration.isLocalDirectory();
         this.readFromClasspath = configuration.readFromClasspath();
         this.directoryListingEnabled = configuration.isDirectoryListingEnabled();
+        this.resolveParentResourceIfNotFound = configuration.resolveParentResourceIfNotFound(); 
         this.welcomeFiles = configuration.getWelcomeFiles();
         this.supportedFileExtensions = configuration.getSupportedFileExtensions();
     }
@@ -164,7 +167,34 @@ public class ResourceServerConfiguration implements IResourceServerConfiguration
         return this;
     }
 
+    
+    /**
+     * @see com.github.toolarium.jwebserver.config.IResourceServerConfiguration#resolveParentResourceIfNotFound()
+     */
+    @Override
+    public boolean resolveParentResourceIfNotFound() {
+        return resolveParentResourceIfNotFound;
+    }
+    
+    
+    /**
+     * Defines what happen in case a requested resource can't be found. In case of true (default) 
+     * In case of true parent resources a resolved with the help of welcomeFiles.
+     * In case of false the resolution of parent resources is disabled.
+     *
+     * @param resolveParentResourceIfNotFound true to resolve parent resource if the resource can't be found.
+     * @return the ResourceServerConfiguration
+     */
+    public ResourceServerConfiguration setResolveParentResourceIfNotFound(Boolean resolveParentResourceIfNotFound) {
+        if (resolveParentResourceIfNotFound != null) {
+            LOG.debug("Set resolveParentResourceIfNotFound: [" + resolveParentResourceIfNotFound + END_VALUE);
+            this.resolveParentResourceIfNotFound = resolveParentResourceIfNotFound.booleanValue();
+        }
 
+        return this;
+    }
+
+    
     /**
      * @see com.github.toolarium.jwebserver.config.IResourceServerConfiguration#getWelcomeFiles()
      */
@@ -261,7 +291,7 @@ public class ResourceServerConfiguration implements IResourceServerConfiguration
         int result = 1;
         result = prime * result + Arrays.hashCode(supportedFileExtensions);
         result = prime * result + Arrays.hashCode(welcomeFiles);
-        result = prime * result + Objects.hash(directory, directoryListingEnabled, isLocalDirectory, readFromClasspath);
+        result = prime * result + Objects.hash(directory, directoryListingEnabled, resolveParentResourceIfNotFound, isLocalDirectory, readFromClasspath);
         return result;
     }
 
@@ -285,6 +315,7 @@ public class ResourceServerConfiguration implements IResourceServerConfiguration
         
         ResourceServerConfiguration other = (ResourceServerConfiguration) obj;
         return Objects.equals(directory, other.directory) && directoryListingEnabled == other.directoryListingEnabled
+                && resolveParentResourceIfNotFound == other.resolveParentResourceIfNotFound                
                 && isLocalDirectory == other.isLocalDirectory && readFromClasspath == other.readFromClasspath
                 && Arrays.equals(supportedFileExtensions, other.supportedFileExtensions)
                 && Arrays.equals(welcomeFiles, other.welcomeFiles);
@@ -298,6 +329,7 @@ public class ResourceServerConfiguration implements IResourceServerConfiguration
     public String toString() {
         return "ResourceServerConfiguration [directory=" + directory + ", isLocalDirectory=" + isLocalDirectory
                 + ", readFromClasspath=" + readFromClasspath + ", directoryListingEnabled=" + directoryListingEnabled
+                + ", resolveParentResourceIfNotFound=" + resolveParentResourceIfNotFound
                 + ", welcomeFiles=" + Arrays.toString(welcomeFiles)
                 + ", supportedFileExtensions=" + Arrays.toString(supportedFileExtensions) + "]";
     }

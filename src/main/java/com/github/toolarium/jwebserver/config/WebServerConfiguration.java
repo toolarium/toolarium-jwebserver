@@ -491,6 +491,8 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         } else {
             resourceServerConfiguration.setDirectoryListingEnabled(Boolean.FALSE);
         }
+        
+        resourceServerConfiguration.setResolveParentResourceIfNotFound(readProperty(properties, "resolveParentResourceIfNotFound", resourceServerConfiguration.resolveParentResourceIfNotFound(), false));
         resourceServerConfiguration.setWelcomeFiles(readProperty(properties, "welcomeFiles", ConfigurationUtil.getInstance().formatArrayAsString(resourceServerConfiguration.getWelcomeFiles()), false));
         resourceServerConfiguration.setSupportedFileExtensions(readProperty(properties, "supportedFileExtensions", ConfigurationUtil.getInstance().formatArrayAsString(resourceServerConfiguration.getSupportedFileExtensions()), false));
         

@@ -83,25 +83,27 @@ public class PathResourceManager extends io.undertow.server.handlers.resource.Pa
             }
         }
 
-        if (resource != null && resource.isDirectory() && !path.endsWith("/")) {
-            final String directoryPath = ResourceUtil.getInstance().slashify(path);
-            
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Test welcome files: " + welcomeFiles);
-            }
-            
-            Resource indexResource = null;
-            String[] directorySplit = directoryPath.split("/");
-            for (int i = directorySplit.length - 1; i >= 0; i--) {
-                String parentPath = ResourceUtil.getInstance().prepareString(directorySplit, i);
-                indexResource = getIndexFiles(parentPath);
-                if (indexResource != null) {
-                    resource = indexResource;
-                    break;
+        if (configuration.resolveParentResourceIfNotFound()) {
+            if (resource != null && resource.isDirectory() && !path.endsWith("/")) {
+                final String directoryPath = ResourceUtil.getInstance().slashify(path);
+                
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Test welcome files: " + welcomeFiles);
+                }
+                
+                Resource indexResource = null;
+                String[] directorySplit = directoryPath.split("/");
+                for (int i = directorySplit.length - 1; i >= 0; i--) {
+                    String parentPath = ResourceUtil.getInstance().prepareString(directorySplit, i);
+                    indexResource = getIndexFiles(parentPath);
+                    if (indexResource != null) {
+                        resource = indexResource;
+                        break;
+                    }
                 }
             }
         }
-
+        
         return resource;
     }
 

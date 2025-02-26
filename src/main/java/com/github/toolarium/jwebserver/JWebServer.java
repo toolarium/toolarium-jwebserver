@@ -64,6 +64,8 @@ public class JWebServer implements Runnable {
     private Boolean directoryListingEnabled;
     @Option(names = { "--welcomeFiles" }, paramLabel = "welcomeFiles", description = "The welcome files, by default index.html, index.htm.")
     private String welcomeFiles;
+    @Option(names = { "--disableResolveParentResourceIfNotFound" }, paramLabel = "disableResolveParentResourceIfNotFound",  description = "Disable the resolution of parent resources if the requested resource can' be found.")    
+    private Boolean disableResolveParentResourceIfNotFound;
     
     @Option(names = { "--trustAll" }, paramLabel = "trustAnyCertificate", description = "Define to trust any certificate, default false")
     private Boolean trustAnyCertificate;
@@ -132,6 +134,7 @@ public class JWebServer implements Runnable {
             webServerConfiguration.getResourceServerConfiguration()
                     .setDirectory(directory)
                     .setDirectoryListingEnabled(directoryListingEnabled)
+                    .setResolveParentResourceIfNotFound(disableResolveParentResourceIfNotFound)
                     .setWelcomeFiles(welcomeFiles);
 
             // proxy configuration

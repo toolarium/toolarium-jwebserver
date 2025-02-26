@@ -46,6 +46,16 @@ public interface IResourceServerConfiguration {
 
     
     /**
+     * Defines what happen in case a requested resource can't be found. In case of true (default) 
+     * In case of true parent resources a resolved with the help of welcomeFiles.
+     * In case of false the resolution of parent resources is disabled.
+     *
+     * @return true to resolve parent resource if the resource can't be found.
+     */
+    boolean resolveParentResourceIfNotFound();
+    
+    
+    /**
      * Set the welcome files
      *
      * @return the welcome files

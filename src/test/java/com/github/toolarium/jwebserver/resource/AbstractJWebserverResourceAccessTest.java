@@ -182,6 +182,35 @@ public abstract class AbstractJWebserverResourceAccessTest extends AbstractJWebS
 
     
     /**
+     * Test resource with adapted index.
+     */
+    @Test void testResourceFallbackDisabled() {
+        WebServerConfiguration configuration = newConfiguration();
+        configuration.getResourceServerConfiguration().setResolveParentResourceIfNotFound(false);
+        configuration.getResourceServerConfiguration().setWelcomeFiles("index.html, index.htm, index.json");
+        setDirectory(configuration);
+        run(configuration);
+
+        assertEquals(RoutingHandler.SLASH, configuration.getResourcePath());
+        RestAssured.port = configuration.getPort();
+        String additionPath = RoutingHandler.SLASH + MYPATH + RoutingHandler.SLASH + SUBPATH + RoutingHandler.SLASH + ADDITION;
+        given().when().get(additionPath).then().statusCode(403);
+        given().when().get(RoutingHandler.SLASH + MYPATH + RoutingHandler.SLASH + SUBPATH + RoutingHandler.SLASH + ADDITION + RoutingHandler.SLASH + "EmptyFile").then().statusCode(200);
+        given().when().get(RoutingHandler.SLASH + MYPATH + RoutingHandler.SLASH + SUBPATH + RoutingHandler.SLASH + ADDITION + RoutingHandler.SLASH + "EmptyFile2").then().statusCode(404);
+
+        // re-test by other welcome file
+        configuration = newConfiguration();
+        configuration.getResourceServerConfiguration().setWelcomeFiles(MY_JSON);
+        setDirectory(configuration);
+        run(configuration);
+
+        RestAssured.port = configuration.getPort();
+        given().when().get(additionPath).then().statusCode(200);
+        given().get(additionPath).then().log().all().assertThat().contentType(ContentType.JSON).statusCode(200).body(C, equalTo(D));
+    }
+
+    
+    /**
      * Set the base directory on the configuration
      *
      * @param configuration the configuration
