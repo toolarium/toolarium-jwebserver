@@ -130,11 +130,16 @@ public class JWebServer implements Runnable {
             // SSL configuration
             webServerConfiguration.getSSLServerConfiguration().setTrustAnyCertificate(trustAnyCertificate);
             
+            Boolean resolveParentResourceIfNotFound = Boolean.TRUE;
+            if (disableResolveParentResourceIfNotFound != null && disableResolveParentResourceIfNotFound.booleanValue()) {
+                resolveParentResourceIfNotFound = Boolean.FALSE;
+            }
+            
             // resource configuration
             webServerConfiguration.getResourceServerConfiguration()
                     .setDirectory(directory)
                     .setDirectoryListingEnabled(directoryListingEnabled)
-                    .setResolveParentResourceIfNotFound(disableResolveParentResourceIfNotFound)
+                    .setResolveParentResourceIfNotFound(resolveParentResourceIfNotFound)
                     .setWelcomeFiles(welcomeFiles);
 
             // proxy configuration
