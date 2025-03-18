@@ -130,7 +130,7 @@ public class JWebServer implements Runnable {
             // SSL configuration
             webServerConfiguration.getSSLServerConfiguration().setTrustAnyCertificate(trustAnyCertificate);
             
-            Boolean resolveParentResourceIfNotFound = Boolean.TRUE;
+            Boolean resolveParentResourceIfNotFound = null;
             if (disableResolveParentResourceIfNotFound != null && disableResolveParentResourceIfNotFound.booleanValue()) {
                 resolveParentResourceIfNotFound = Boolean.FALSE;
             }
