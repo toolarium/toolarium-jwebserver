@@ -85,7 +85,7 @@ public final class LogbackUtil {
             Appender<ILoggingEvent> appender = ((ch.qos.logback.classic.Logger)log).getAppender(appenderName);
             if (appender != null) {
                 if (((ch.qos.logback.classic.Logger)log).detachAppender(appenderName)) {
-                    LOG.info("Successful detached appender [" + appenderName  + "].");
+                    LOG.info("Successful detached appender [{}].", appenderName);
                 }
                 
                 if (appender instanceof RollingFileAppender) {
@@ -252,7 +252,7 @@ public final class LogbackUtil {
         //log.addAppender(logConsoleAppender);
         log.addAppender(logFileAppender);
         
-        LOG.info("Successful added appender [" + appenderName  + "].");
+        LOG.info("Successful added appender [{}].", appenderName);
         return log;
     }
  

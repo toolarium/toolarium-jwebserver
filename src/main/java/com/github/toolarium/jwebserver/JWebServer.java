@@ -5,6 +5,7 @@
  */
 
 package com.github.toolarium.jwebserver;
+
 import com.github.toolarium.jwebserver.config.IWebServerConfiguration;
 import com.github.toolarium.jwebserver.config.WebServerConfiguration;
 import com.github.toolarium.jwebserver.handler.health.HealthHttpHandler;
@@ -16,6 +17,7 @@ import com.github.toolarium.jwebserver.logger.logback.LogbackUtil;
 import com.github.toolarium.jwebserver.util.ConfigurationUtil;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
+import io.undertow.UndertowOptions;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import org.fusesource.jansi.AnsiConsole;
@@ -26,7 +28,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Help.ColorScheme;
 import picocli.CommandLine.Option;
 
- 
+
 /**
  * The jwebserver.
  * https://blogs.oracle.com/javamagazine/post/java-18-simple-web-server
@@ -45,7 +47,7 @@ public class JWebServer implements Runnable {
     private String resourcePath;
     @Option(names = { "--healthPath" }, paramLabel = "healthPath", defaultValue = "/q/health", description = "The health path, by default /q/health.")
     private String healthPath;    
-    @Option(names = { "--basicauth" }, paramLabel = "authentication", description = "The basic authentication: user:password, by default disabled.")
+    @Option(names = { "--basicauth" }, paramLabel = "authentication", description = "The basic authentication: user:password or env:<ENV_VAR_NAME>, by default disabled.")
     private String basicAuth;
     @Option(names = { "--ioThreads" }, paramLabel = "ioThreads", description = "The number of I/O threads.")
     private Integer ioThreads;
@@ -122,7 +124,7 @@ public class JWebServer implements Runnable {
                     .setWebserverName(webserverName)
                     .setHostname(hostname).setPort(port).setSecurePort(securePort)
                     .setResourcePath(resourcePath)
-                    .setBasicAuthentication(basicAuth)
+                    .setBasicAuthentication(resolveCredential(basicAuth))
                     .setHealthPath(healthPath)
                     .setIoThreads(ioThreads).setWorkerThreads(workerThreads)
                     .setVerboseLevel(verboseLevel).setAccessLogFilePattern(accessLogFilePattern).setAccessLogFormatString(accessLogFormatString);
@@ -168,8 +170,28 @@ public class JWebServer implements Runnable {
 
     
     /**
+     * Resolve a credential value. Supports "env:VAR_NAME" prefix to read from environment variables,
+     * avoiding exposure of secrets in process listings.
+     *
+     * @param value the credential value or env: reference
+     * @return the resolved credential value
+     */
+    private String resolveCredential(String value) {
+        if (value != null && value.startsWith("env:")) {
+            String envVar = value.substring(4);
+            String resolved = System.getenv(envVar);
+            if (resolved == null) {
+                LOG.warn("Environment variable [{}] is not set.", envVar);
+            }
+            return resolved;
+        }
+        return value;
+    }
+
+
+    /**
      * Get the color schema
-     * 
+     *
      * @return the color schema
      */
     private ColorScheme getColorSchmea() {
@@ -198,7 +220,7 @@ public class JWebServer implements Runnable {
         
         int exitCode = commandLine.execute(args);
         if (jwebServer.hasError()) {
-            LOG.debug("Executed Ended with code:" + exitCode);
+            LOG.debug("Executed Ended with code: {}", exitCode);
         } else {
             LOG.debug("Successful started.");
         }
@@ -266,7 +288,7 @@ public class JWebServer implements Runnable {
         IWebServerConfiguration webServerConfiguration = getConfiguration();
         
         try {
-            LOG.info("Start server [" + webServerConfiguration.getHostname() + "] on port [" + webServerConfiguration.getPort() + "]...");
+            LOG.info("Start server [{}] on port [{}]...", webServerConfiguration.getHostname(), webServerConfiguration.getPort());
 
             // create routing
             io.undertow.server.RoutingHandler routingHandler = Handlers.routing();
@@ -294,16 +316,26 @@ public class JWebServer implements Runnable {
                     HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
                     builder.addHttpsListener(webServerConfiguration.getSecurePort(), webServerConfiguration.getHostname(), sslContext, AccessLogHttpHandler.addHandler(webServerConfiguration, routingHandler));
                 } catch (Exception e) {
+                    hasError = true;
                     if (!VerboseLevel.NONE.equals(verboseLevel)) {
                         lifecycleLogger.printServerStartup(webServerConfiguration, null);
                     }
-                    LOG.warn("Could not get SSL context [" + webServerConfiguration.getHostname() + "] on port [" + webServerConfiguration.getSecurePort() + "]\n" + lifecycleLogger.preapreThrowable(e));
+                    LOG.warn("Could not get SSL context [{}] on port [{}]\n{}", webServerConfiguration.getHostname(), webServerConfiguration.getSecurePort(), lifecycleLogger.preapreThrowable(e));
                 }
             }
             
+            // set max entity size
+            builder.setServerOption(UndertowOptions.MAX_ENTITY_SIZE, 25_485_760L);
+            
             server = builder.build();
             server.start();
-            
+
+            // register shutdown hook for graceful shutdown on SIGTERM/SIGINT
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                LOG.info("Shutdown signal received, stopping server...");
+                stop();
+            }, "jwebserver-shutdown"));
+
             if (!VerboseLevel.NONE.equals(verboseLevel)) {
                 lifecycleLogger.printServerStartup(webServerConfiguration, server.getListenerInfo());
             }
@@ -318,7 +350,7 @@ public class JWebServer implements Runnable {
             } else {
                 port = webServerConfiguration.getSecurePort();
             }
-            LOG.warn("Could not start server [" + webServerConfiguration.getHostname() + "] on port [" + port + "]\n" + lifecycleLogger.preapreThrowable(ex));
+            LOG.warn("Could not start server [{}] on port [{}]\n{}", webServerConfiguration.getHostname(), port, lifecycleLogger.preapreThrowable(ex));
         }
     }
 }

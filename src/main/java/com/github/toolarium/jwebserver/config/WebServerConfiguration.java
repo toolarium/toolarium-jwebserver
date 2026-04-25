@@ -6,6 +6,7 @@
 package com.github.toolarium.jwebserver.config;
 
 import com.github.toolarium.common.security.ISecuredValue;
+import com.github.toolarium.common.security.SecuredValue;
 import com.github.toolarium.jwebserver.handler.routing.RoutingHandler;
 import com.github.toolarium.jwebserver.logger.VerboseLevel;
 import com.github.toolarium.jwebserver.util.ConfigurationUtil;
@@ -25,6 +26,8 @@ import org.slf4j.LoggerFactory;
  */
 public class WebServerConfiguration implements IWebServerConfiguration {
     private static final String END_VALUE = "].";
+    private static final String FROM_PROPERTIES = "] from ";
+    private static final String DOT = ".";
     private static final String JWEBSERVER_PROPERTIES = "jwebserver.properties";
     private static final Logger LOG = LoggerFactory.getLogger(WebServerConfiguration.class);
     private String webserverName;
@@ -157,10 +160,11 @@ public class WebServerConfiguration implements IWebServerConfiguration {
      */
     public WebServerConfiguration setPort(Integer port) {
         if (port != null) {
-            LOG.debug("Set port: [" + port + "].  ");            
-            this.port = port; 
+            validatePort("port", port);
+            LOG.debug("Set port: [" + port + "].  ");
+            this.port = port;
         }
-        
+
         return this;
     }
 
@@ -182,10 +186,11 @@ public class WebServerConfiguration implements IWebServerConfiguration {
      */
     public WebServerConfiguration setSecurePort(Integer securePort) {
         if (securePort != null) {
-            LOG.debug("Set secure port: [" + securePort + "].  ");            
+            validatePort("securePort", securePort);
+            LOG.debug("Set secure port: [" + securePort + "].  ");
             this.securePort = securePort;
         }
-        
+
         return this;
     }
 
@@ -452,8 +457,22 @@ public class WebServerConfiguration implements IWebServerConfiguration {
 
     
     /**
+     * Validate the port range
+     *
+     * @param name the port name
+     * @param port the port value
+     * @throws IllegalArgumentException if the port is out of range
+     */
+    private void validatePort(String name, int port) {
+        if (port < 1 || port > 65535) {
+            throw new IllegalArgumentException("Invalid " + name + " [" + port + "]: must be between 1 and 65535.");
+        }
+    }
+
+
+    /**
      * Read the configuration from the classpath
-     * 
+     *
      * @return the WebServerConfiguration
      */
     public WebServerConfiguration readProperties() {
@@ -474,7 +493,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         setAccessLogFormatString(readProperty(properties, "accessLogFormatString", accessLogFormatString, false));
         setAccessLogFilePattern(readProperty(properties, "accessLogFilePattern", accessLogFilePattern, false));
         
-        setBasicAuthentication(readProperty(properties, "basicAuthentication", basicAuthentication, true));
+        setBasicAuthentication(readRawProperty(properties, "basicAuthentication", basicAuthentication, true));
         setHealthPath(readProperty(properties, "healthPath", healthPath, true));
         setResourcePath(readProperty(properties, "resourcePath", getResourcePath(), false));
 
@@ -482,7 +501,7 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         sslServerConfiguration.setTrustKeyStoreFile(readProperty(properties, "trustKeyStoreFile", sslServerConfiguration.getTrustKeyStoreFile(), true));
         sslServerConfiguration.setKeyStoreFile(readProperty(properties, "keyStoreFile", sslServerConfiguration.getKeyStoreFile(), true));
         sslServerConfiguration.setKeyStoreAlias(readProperty(properties, "keyStoreAlias", sslServerConfiguration.getKeyStoreAlias(), true));
-        sslServerConfiguration.setKeyStorePassword(readProperty(properties, "keyStorePassword", sslServerConfiguration.getKeyStorePassword(), true));
+        sslServerConfiguration.setKeyStorePassword(readRawProperty(properties, "keyStorePassword", sslServerConfiguration.getKeyStorePassword(), true));
         sslServerConfiguration.setKeyStoreType(readProperty(properties, "keysStoreType", sslServerConfiguration.getKeyStoreType(), true));
 
         resourceServerConfiguration.setDirectory(readProperty(properties, "directory", resourceServerConfiguration.getDirectory(), false), readProperty(properties, "readFromClasspath", resourceServerConfiguration.readFromClasspath(), false));
@@ -576,15 +595,15 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         
         if (result == null || result.isBlank()) {
             if (allowEmptyValue) {
-                LOG.debug("Assign property [" + name + "] = [" + result + "] from " + JWEBSERVER_PROPERTIES + ".");
+                LOG.debug("Assign property [" + name + "] = [" + result + FROM_PROPERTIES + JWEBSERVER_PROPERTIES + DOT);
                 return result;
             } else {
-                LOG.debug("Assign default property [" + name + "] = [" + defaultValue + "] from " + JWEBSERVER_PROPERTIES + ".");
+                LOG.debug("Assign default property [" + name + "] = [" + defaultValue + FROM_PROPERTIES + JWEBSERVER_PROPERTIES + DOT);
                 return defaultValue;
             }
         } else {
             if (!result.equals(defaultValue)) {
-                LOG.debug("Assign property [" + name + "] = [" + result + "] from " + JWEBSERVER_PROPERTIES + ".");
+                LOG.debug("Assign property [" + name + "] = [" + result + FROM_PROPERTIES + JWEBSERVER_PROPERTIES + DOT);
             }
         }
         
@@ -681,5 +700,58 @@ public class WebServerConfiguration implements IWebServerConfiguration {
         }
         
         return ConfigurationUtil.getInstance().convert(name, result, defaultValue);
+    }
+
+
+    /**
+     * Read a raw property without environment variable expansion (for credential values)
+     *
+     * @param properties the properties
+     * @param name the name
+     * @param defaultValue the default value
+     * @param allowEmptyValue true to allow empty values otherwise in case of an empty value the default value will be taken
+     * @return the result
+     */
+    private String readRawProperty(Properties properties, String name, String defaultValue, boolean allowEmptyValue) {
+        String result = properties.getProperty(name, defaultValue);
+
+        if (result == null || result.isBlank()) {
+            if (allowEmptyValue) {
+                LOG.debug("Assign property [" + name + FROM_PROPERTIES + JWEBSERVER_PROPERTIES + DOT);
+                return result;
+            } else {
+                LOG.debug("Assign default property [" + name + FROM_PROPERTIES + JWEBSERVER_PROPERTIES + DOT);
+                return defaultValue;
+            }
+        } else {
+            if (!result.equals(defaultValue)) {
+                LOG.debug("Assign property [" + name + FROM_PROPERTIES + JWEBSERVER_PROPERTIES + DOT);
+            }
+        }
+
+        return result;
+    }
+
+
+    /**
+     * Read a raw secured value property without environment variable expansion (for credential values)
+     *
+     * @param properties the properties
+     * @param name the name
+     * @param defaultValue the default value
+     * @param allowEmptyValue true to allow empty values otherwise in case of an empty value the default value will be taken
+     * @return the result
+     */
+    private ISecuredValue<String> readRawProperty(Properties properties, String name, ISecuredValue<String> defaultValue, boolean allowEmptyValue) {
+        String result = readRawProperty(properties, name, "" + defaultValue, allowEmptyValue);
+        if (result == null || result.isBlank()) {
+            if (allowEmptyValue) {
+                return null;
+            } else {
+                return defaultValue;
+            }
+        }
+
+        return new SecuredValue<String>(result);
     }
 }

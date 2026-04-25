@@ -45,18 +45,24 @@ public final class RoutingHandler {
         }
 
         if (webServerConfiguration.isProxyServer()) {
+            // proxy mode: all HTTP methods are forwarded to the backend (wrapped with a single auth handler)
             io.undertow.server.handlers.proxy.ProxyHandler proxyHandler = ProxyHandler.createProxyHandler(webServerConfiguration);
-            routinrgHandler.add(Methods.GET, resourcePath + STAR, BasicAuthenticationHttpHandler.addHandler(webServerConfiguration, proxyHandler));
-            routinrgHandler.add(Methods.PUT, resourcePath + STAR, BasicAuthenticationHttpHandler.addHandler(webServerConfiguration, proxyHandler));
-            routinrgHandler.add(Methods.PATCH, resourcePath + STAR, BasicAuthenticationHttpHandler.addHandler(webServerConfiguration, proxyHandler));
-            routinrgHandler.add(Methods.POST, resourcePath + STAR, BasicAuthenticationHttpHandler.addHandler(webServerConfiguration, proxyHandler));
-            routinrgHandler.add(Methods.DELETE, resourcePath + STAR, BasicAuthenticationHttpHandler.addHandler(webServerConfiguration, proxyHandler));
-            routinrgHandler.add(Methods.HEAD, resourcePath + STAR, BasicAuthenticationHttpHandler.addHandler(webServerConfiguration, proxyHandler));
-            routinrgHandler.add(Methods.OPTIONS, resourcePath + STAR, BasicAuthenticationHttpHandler.addHandler(webServerConfiguration, proxyHandler));
+            io.undertow.server.HttpHandler authWrappedProxy = BasicAuthenticationHttpHandler.addHandler(webServerConfiguration, proxyHandler);
+            String proxyPath = resourcePath + STAR;
+            routinrgHandler.add(Methods.GET, proxyPath, authWrappedProxy);
+            routinrgHandler.add(Methods.PUT, proxyPath, authWrappedProxy);
+            routinrgHandler.add(Methods.PATCH, proxyPath, authWrappedProxy);
+            routinrgHandler.add(Methods.POST, proxyPath, authWrappedProxy);
+            routinrgHandler.add(Methods.DELETE, proxyPath, authWrappedProxy);
+            routinrgHandler.add(Methods.HEAD, proxyPath, authWrappedProxy);
+            routinrgHandler.add(Methods.OPTIONS, proxyPath, authWrappedProxy);
         } else {
+            // file server mode: only read-only methods
             io.undertow.server.handlers.resource.ResourceHandler resourceHandler = ResourceHandler.createResourceHandler(webServerConfiguration);
-            routinrgHandler.add(Methods.GET, resourcePath + STAR, BasicAuthenticationHttpHandler.addHandler(webServerConfiguration, resourceHandler));
-            routinrgHandler.add(Methods.HEAD, resourcePath + STAR, BasicAuthenticationHttpHandler.addHandler(webServerConfiguration, resourceHandler));
+            io.undertow.server.HttpHandler authWrappedResource = BasicAuthenticationHttpHandler.addHandler(webServerConfiguration, resourceHandler);
+            String filePath = resourcePath + STAR;
+            routinrgHandler.add(Methods.GET, filePath, authWrappedResource);
+            routinrgHandler.add(Methods.HEAD, filePath, authWrappedResource);
         }
 
         //routinrgHandler.setFallbackHandler(new RedirectHandler(resourcePath));

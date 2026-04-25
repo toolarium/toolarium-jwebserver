@@ -6,6 +6,7 @@
 package com.github.toolarium.jwebserver.handler.health;
 
 import com.github.toolarium.jwebserver.config.IWebServerConfiguration;
+import com.github.toolarium.jwebserver.handler.auth.BasicAuthenticationHttpHandler;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.RoutingHandler;
@@ -52,7 +53,8 @@ public final class HealthHttpHandler implements HttpHandler {
      */
     public static RoutingHandler addHandler(final IWebServerConfiguration webServerConfiguration, RoutingHandler routingHandler) {
         if (webServerConfiguration.hasHealthCheck()) {
-            routingHandler.get(webServerConfiguration.getHealthPath(), new HealthHttpHandler());
+            HttpHandler healthHandler = BasicAuthenticationHttpHandler.addHandler(webServerConfiguration, new HealthHttpHandler());
+            routingHandler.get(webServerConfiguration.getHealthPath(), healthHandler);
         }
         return routingHandler;
     }

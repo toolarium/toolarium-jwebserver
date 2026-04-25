@@ -5,7 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [ 1.2.8 ] - 2025-03-18
+## [ 1.2.8 ] - 2026-04-25
+### Changed
+- Updated dependencies.
+- Max entity size set to 25 MB via UndertowOptions.
+- Reuse single auth-wrapped handler instance for all route registrations.
+- Replaced string concatenation with parameterized logging across codebase.
+
+### Added
+- Graceful shutdown hook for SIGTERM/SIGINT signals.
+- Support for `env:VAR_NAME` prefix in `--basicauth` to read credentials from environment variables.
+- Port range validation for port and securePort configuration.
+- Path traversal protection with canonicalization and `..` rejection in PathResourceManager and ClassPathResourceManager.
+- Extension resolution cache (bounded ConcurrentHashMap) in PathResourceManager and ClassPathResourceManager.
+- Warning log when trust-all certificate mode is enabled.
+- Authorization header redaction in access logs to prevent credential leakage.
+- Health endpoint is now protected by basic authentication when configured.
+
+### Fixed
+- Constant-time password comparison using MessageDigest.isEqual() to prevent timing attacks.
+- Proxy SSL fallback now logs explicit warning with host name when falling back to unencrypted connection.
+- Proxy URI validation: hosts with missing scheme or host are skipped with a warning.
+- Thread-safe synchronized SSLContext lazy initialization.
+- Credential properties (basicAuthentication, keyStorePassword) no longer go through environment variable expansion.
+- Double expansion bug fixed in ConfigurationUtil integer conversion.
+- SSL port initialization failure now sets hasError flag.
 
 ## [ 1.2.7 ] - 2025-03-18
 ### Fixed

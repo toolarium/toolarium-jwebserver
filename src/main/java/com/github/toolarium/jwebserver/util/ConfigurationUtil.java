@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
  */
 public final class ConfigurationUtil {
     private static final Logger LOG = LoggerFactory.getLogger(ConfigurationUtil.class);
-    private static final String END_VALUE = "].";
 
 
     /**
@@ -64,7 +63,7 @@ public final class ConfigurationUtil {
         
         final String result = PropertyExpander.getInstance().expand(value);
         if (!value.equals(result)) {
-            LOG.debug("Resolved value [" + value + "] to [" + result + "].  ");
+            LOG.debug("Resolved value [{}] to [{}].", value, result);
         }
         
         return result;
@@ -101,13 +100,13 @@ public final class ConfigurationUtil {
      */
     public Integer convert(String name, String value, Integer defaultValue) {
         try {
-            return Integer.valueOf(expand(expand(value)));
+            return Integer.valueOf(expand(value));
         } catch (Exception e) {
-            String nameMsg = ""; 
             if (name != null) {
-                nameMsg = "for attribute [" + name + "]";
+                LOG.warn("Invalid value [{}] for attribute [{}], keep default value [{}].", value, name, defaultValue);
+            } else {
+                LOG.warn("Invalid value [{}], keep default value [{}].", value, defaultValue);
             }
-            LOG.warn("Invalid value [" + value + "] " + nameMsg + ", keep default value [" + defaultValue + END_VALUE);
             return defaultValue;
         }
     }
@@ -125,11 +124,11 @@ public final class ConfigurationUtil {
         try {
             return Boolean.valueOf(expand(value));
         } catch (Exception e) {
-            String nameMsg = ""; 
             if (name != null) {
-                nameMsg = "for attribute [" + name + "]";
+                LOG.warn("Invalid value [{}] for attribute [{}], keep default value [{}].", value, name, defaultValue);
+            } else {
+                LOG.warn("Invalid value [{}], keep default value [{}].", value, defaultValue);
             }
-            LOG.warn("Invalid value [" + value + "] " + nameMsg + ", keep default value [" + defaultValue + END_VALUE);
             return defaultValue;
         }
     }
@@ -147,11 +146,11 @@ public final class ConfigurationUtil {
         try {
             return VerboseLevel.valueOf(expand(value));
         } catch (Exception e) {
-            String nameMsg = ""; 
             if (name != null) {
-                nameMsg = "for attribute [" + name + "]";
+                LOG.warn("Invalid value [{}] for attribute [{}], keep default value [{}].", value, name, defaultValue);
+            } else {
+                LOG.warn("Invalid value [{}], keep default value [{}].", value, defaultValue);
             }
-            LOG.warn("Invalid value [" + value + "] " + nameMsg + ", keep default value [" + defaultValue + END_VALUE);
             return defaultValue;
         }
     }
@@ -169,11 +168,11 @@ public final class ConfigurationUtil {
         try {
             return new SecuredValue<String>(expand(value));
         } catch (Exception e) {
-            String nameMsg = ""; 
             if (name != null) {
-                nameMsg = "for attribute [" + name + "]";
+                LOG.warn("Invalid value [{}] for attribute [{}], keep default value [{}].", value, name, defaultValue);
+            } else {
+                LOG.warn("Invalid value [{}], keep default value [{}].", value, defaultValue);
             }
-            LOG.warn("Invalid value [" + value + "] " + nameMsg + ", keep default value [" + defaultValue + END_VALUE);
             return defaultValue;
         }
     }
@@ -211,7 +210,7 @@ public final class ConfigurationUtil {
         
         StringBuilder formatString = new StringBuilder();
         for (String welcomeFile : stringArray) {
-            if (!formatString.toString().isEmpty()) {
+            if (formatString.length() > 0) {
                 formatString.append(", ");
             }
             formatString.append(welcomeFile);

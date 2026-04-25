@@ -10,8 +10,10 @@ import com.github.toolarium.jwebserver.logger.VerboseLevel;
 import com.github.toolarium.jwebserver.logger.logback.LogbackUtil;
 //import com.github.toolarium.jwebserver.logger.LogbackUtil;
 import io.undertow.server.HttpHandler;
+import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.accesslog.AccessLogHandler;
 import io.undertow.server.handlers.accesslog.AccessLogReceiver;
+import io.undertow.util.Headers;
 import org.slf4j.Logger;
 
 
@@ -40,19 +42,42 @@ public final class AccessLogHttpHandler {
      * @return the handler
      */
     public static HttpHandler addHandler(final IWebServerConfiguration webServerConfiguration, final HttpHandler handlerToWrap) {
-        
-        if (VerboseLevel.VERBOSE.equals(webServerConfiguration.getVerboseLevel()) || VerboseLevel.ACCESS.equals(webServerConfiguration.getVerboseLevel())) {
+        VerboseLevel level = webServerConfiguration.getVerboseLevel();
+        if (VerboseLevel.VERBOSE.equals(level) || VerboseLevel.ACCESS.equals(level)) {
             final Logger log = LogbackUtil.getInstance().createAccessLogAppender(ACCESSLOG_APPENDER_NAME, webServerConfiguration.getAccessLogFilePattern());
             final AccessLogReceiver accessLogReceiver = new Slf4jAccessLogReceiver(log);
-            return new AccessLogHandler(handlerToWrap, accessLogReceiver, webServerConfiguration.getAccessLogFormatString(), AccessLogHttpHandler.class.getClassLoader());
-        } else if (VerboseLevel.ACCESS_CONSOLE.equals(webServerConfiguration.getVerboseLevel())) {
+            return new AccessLogHandler(sanitizeAuthorizationHeader(handlerToWrap), accessLogReceiver, webServerConfiguration.getAccessLogFormatString(), AccessLogHttpHandler.class.getClassLoader());
+        } else if (VerboseLevel.ACCESS_CONSOLE.equals(level)) {
             //LogbackUtil.getInstance().detachAppender(ACCESSLOG_APPENDER_NAME);
             final AccessLogReceiver accessLogReceiver = new StdoutAccessLogReceiver();
-            return new AccessLogHandler(handlerToWrap, accessLogReceiver, webServerConfiguration.getAccessLogFormatString(), AccessLogHttpHandler.class.getClassLoader());
+            return new AccessLogHandler(sanitizeAuthorizationHeader(handlerToWrap), accessLogReceiver, webServerConfiguration.getAccessLogFormatString(), AccessLogHttpHandler.class.getClassLoader());
         } else {
             //LogbackUtil.getInstance().detachAppender(ACCESSLOG_APPENDER_NAME);
         }
-        
+
         return handlerToWrap;
+    }
+
+
+    /**
+     * Wrap handler to redact the Authorization header after auth processing but before access log captures it
+     *
+     * @param next the next handler
+     * @return the sanitizing handler
+     */
+    private static HttpHandler sanitizeAuthorizationHeader(final HttpHandler next) {
+        return new HttpHandler() {
+            @Override
+            public void handleRequest(HttpServerExchange exchange) throws Exception {
+                // add completion listener to redact Authorization header before access log captures it
+                exchange.addExchangeCompleteListener((ex, nextListener) -> {
+                    if (ex.getRequestHeaders().contains(Headers.AUTHORIZATION)) {
+                        ex.getRequestHeaders().put(Headers.AUTHORIZATION, "***");
+                    }
+                    nextListener.proceed();
+                });
+                next.handleRequest(exchange);
+            }
+        };
     }
 }

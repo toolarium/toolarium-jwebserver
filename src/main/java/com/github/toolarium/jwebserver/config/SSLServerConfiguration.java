@@ -69,7 +69,10 @@ public class SSLServerConfiguration implements ISSLServerConfiguration, Serializ
      */
     public SSLServerConfiguration setTrustAnyCertificate(Boolean trustAnyCertificate) {
         if (trustAnyCertificate != null) {
-            LOG.debug("Set trustAnyCertificate: [" + trustAnyCertificate + END_VALUE);            
+            LOG.debug("Set trustAnyCertificate: [" + trustAnyCertificate + END_VALUE);
+            if (trustAnyCertificate.booleanValue()) {
+                LOG.warn("Trust-all certificate mode is enabled! All SSL certificate validation is disabled. This is insecure and should not be used in production.");
+            }
             this.trustAnyCertificate = trustAnyCertificate;
         }
         
@@ -205,11 +208,11 @@ public class SSLServerConfiguration implements ISSLServerConfiguration, Serializ
      * @see com.github.toolarium.jwebserver.config.ISSLServerConfiguration#getSSLContext()
      */
     @Override
-    public SSLContext getSSLContext() throws GeneralSecurityException, IOException {
+    public synchronized SSLContext getSSLContext() throws GeneralSecurityException, IOException {
         if (sslContext == null) {
             sslContext = CertificateUtil.getInstance().createSSLContext(getSecurityManagerProvider(), trustAnyCertificate() != null && trustAnyCertificate.booleanValue());
         }
-        
+
         return sslContext;
     }
 

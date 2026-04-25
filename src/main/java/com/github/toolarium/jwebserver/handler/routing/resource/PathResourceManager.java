@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +25,10 @@ import org.slf4j.LoggerFactory;
  */
 public class PathResourceManager extends io.undertow.server.handlers.resource.PathResourceManager {
     private static final Logger LOG = LoggerFactory.getLogger(PathResourceManager.class);
+    private static final int MAX_EXTENSION_CACHE_SIZE = 1024;
+    private static final String NO_MATCH = "";
     private final IResourceServerConfiguration configuration;
+    private final ConcurrentHashMap<String, String> extensionCache = new ConcurrentHashMap<>();
     private List<String> welcomeFiles;
 
     
@@ -59,33 +63,56 @@ public class PathResourceManager extends io.undertow.server.handlers.resource.Pa
      */
     @Override
     public Resource getResource(String path)  {
-        Resource resource = super.getResource(path);
-
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Request resource [" + path + "]" + ResourceUtil.getInstance().toString(resource));
+        // canonicalize path to prevent traversal via encoded sequences
+        String canonicalPath = ResourceUtil.getInstance().canonicalize(path);
+        if (canonicalPath.contains("..")) {
+            LOG.warn("Blocked path traversal attempt: [" + path + "]");
+            return null;
         }
 
-        // in case no resource found, try with supported file extensions
-        if (resource == null && path.indexOf('.') < 0 && configuration.getSupportedFileExtensions() != null && configuration.getSupportedFileExtensions().length > 0) {
-            for (String supportedFileExtension : configuration.getSupportedFileExtensions()) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Check resource [" + path + "] with extension [" + supportedFileExtension + "].");
-                }
-                
-                resource = super.getResource(path + supportedFileExtension);
-                if (resource != null) {
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("Found resource [" + path + supportedFileExtension + "] in  [" + resource.getUrl() + "] " + resource.getContentLength());
+        Resource resource = super.getResource(canonicalPath);
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Request resource [" + canonicalPath + "]" + ResourceUtil.getInstance().toString(resource));
+        }
+
+        // in case no resource found, try with supported file extensions (with caching)
+        if (resource == null && canonicalPath.indexOf('.') < 0 && configuration.getSupportedFileExtensions() != null && configuration.getSupportedFileExtensions().length > 0) {
+            String cached = extensionCache.get(canonicalPath);
+            if (cached != null) {
+                if (!NO_MATCH.equals(cached)) {
+                    resource = super.getResource(cached);
+                    if (LOG.isDebugEnabled() && resource != null) {
+                        LOG.debug("Found resource [" + cached + "] in  [" + resource.getUrl() + "] " + resource.getContentLength());
                     }
-                    
-                    break;
+                }
+            } else {
+                for (String supportedFileExtension : configuration.getSupportedFileExtensions()) {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Check resource [" + canonicalPath + "] with extension [" + supportedFileExtension + "].");
+                    }
+
+                    String resolvedPath = canonicalPath + supportedFileExtension;
+                    resource = super.getResource(resolvedPath);
+                    if (resource != null) {
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug("Found resource [" + canonicalPath + supportedFileExtension + "] in  [" + resource.getUrl() + "] " + resource.getContentLength());
+                        }
+                        if (extensionCache.size() < MAX_EXTENSION_CACHE_SIZE) {
+                            extensionCache.put(canonicalPath, resolvedPath);
+                        }
+                        break;
+                    }
+                }
+                if (resource == null && extensionCache.size() < MAX_EXTENSION_CACHE_SIZE) {
+                    extensionCache.put(canonicalPath, NO_MATCH);
                 }
             }
         }
 
         if (configuration.resolveParentResourceIfNotFound()) {
-            if (resource != null && resource.isDirectory() && !path.endsWith("/")) {
-                final String directoryPath = ResourceUtil.getInstance().slashify(path);
+            if (resource != null && resource.isDirectory() && !canonicalPath.endsWith("/")) {
+                final String directoryPath = ResourceUtil.getInstance().slashify(canonicalPath);
                 
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Test welcome files: " + welcomeFiles);

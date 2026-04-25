@@ -52,15 +52,22 @@ public final class ProxyHandler {
                 if (hostName != null && !hostName.isBlank()) {
                     try {
                         URI uri = new URI(hostName);
-                        SSLContext sslContext = null;
                         if (uri.getScheme() == null || uri.getScheme().isBlank()) {
-                            LOG.warn("Could not found schema in uri [" + hostName + "]!");
-                        } else if (uri.getScheme().endsWith("s")) {
+                            LOG.warn("Could not found schema in uri [{}], skipping!", hostName);
+                            continue;
+                        }
+                        if (uri.getHost() == null || uri.getHost().isBlank()) {
+                            LOG.warn("Could not found host in uri [{}], skipping!", hostName);
+                            continue;
+                        }
+
+                        SSLContext sslContext = null;
+                        if ("https".equalsIgnoreCase(uri.getScheme())) {
                             try {
                                 sslContext = webServerConfiguration.getSSLServerConfiguration().getSSLContext();
                             } catch (Exception e) {
                                 loadBalancer.addHost(uri);
-                                LOG.warn("Could not initialize the SSL contect: " + e.getMessage(), e);
+                                LOG.warn("Could not initialize the SSL context for [{}], falling back to unencrypted connection: {}", hostName, e.getMessage(), e);
                             } 
                         }
                         
@@ -70,7 +77,7 @@ public final class ProxyHandler {
                             loadBalancer.addHost(uri);
                         }
                     } catch (URISyntaxException e) {
-                        LOG.warn("Could not parse uri: " + hostName);
+                        LOG.warn("Could not parse uri: {}", hostName);
                     }
                 }
             }

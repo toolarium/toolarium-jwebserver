@@ -9,8 +9,9 @@ import io.undertow.security.idm.Account;
 import io.undertow.security.idm.Credential;
 import io.undertow.security.idm.IdentityManager;
 import io.undertow.security.idm.PasswordCredential;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.Principal;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -79,7 +80,14 @@ public class MemoryIdentityManager implements IdentityManager {
             char[] password = ((PasswordCredential) credential).getPassword();
             char[] expectedPassword = users.get(account.getPrincipal().getName());
 
-            return Arrays.equals(password, expectedPassword);
+            if (password == null || expectedPassword == null) {
+                return false;
+            }
+
+            // use constant-time comparison to prevent timing attacks
+            byte[] passwordBytes = new String(password).getBytes(StandardCharsets.UTF_8);
+            byte[] expectedBytes = new String(expectedPassword).getBytes(StandardCharsets.UTF_8);
+            return MessageDigest.isEqual(passwordBytes, expectedBytes);
         }
         return false;
     }
